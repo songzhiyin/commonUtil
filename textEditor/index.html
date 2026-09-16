@@ -5,18 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>纯文本编辑器 · 预览 / 编辑 / 原样导出</title>
   <script>
-    /* 尽早确定主题，避免首屏闪烁 */
+    /* 手动主题：仅 light / dark，不跟随系统 */
     (function () {
-      var pref = 'auto';
+      var pref = 'light';
       try {
         var v = localStorage.getItem('pte.theme');
-        if (v === 'light' || v === 'dark' || v === 'auto') pref = v;
+        if (v === 'light' || v === 'dark') pref = v;
       } catch (e) {}
-      var dark = pref === 'dark' ||
-        (pref === 'auto' && window.matchMedia &&
-         window.matchMedia('(prefers-color-scheme: dark)').matches);
       var root = document.documentElement;
-      root.setAttribute('data-theme', dark ? 'dark' : 'light');
+      root.setAttribute('data-theme', pref);
       root.setAttribute('data-theme-pref', pref);
     })();
   </script>
@@ -28,6 +25,9 @@
       --r-lg: 12px;
       --r-md: 9px;
       --r-sm: 7px;
+      --pad-x: 26px;
+      --pad-b: 48px;
+      --sbw: 0px;              /* 由 JS 测量写入：垂直滚动条宽度 */
     }
 
     /* ---------- 浅色（默认） ---------- */
@@ -322,7 +322,7 @@
       color: var(--text);
     }
 
-    /* 主题切换按钮 */
+    /* 主题切换按钮（仅 light / dark） */
     .btn.icon-only {
       width: 34px;
       padding: 0;
@@ -330,9 +330,8 @@
     .btn.icon-only svg { width: 17px; height: 17px; opacity: .9; }
 
     #btnTheme svg { display: none; }
-    :root[data-theme-pref="auto"]  #btnTheme .ico-auto,
-    :root[data-theme-pref="light"] #btnTheme .ico-light,
-    :root[data-theme-pref="dark"]  #btnTheme .ico-dark { display: block; }
+    :root[data-theme-pref="light"] #btnTheme .ico-light { display: block; }
+    :root[data-theme-pref="dark"]  #btnTheme .ico-dark  { display: block; }
 
     /* ---------- 选项条 ---------- */
     .options-bar {
@@ -420,7 +419,7 @@
       position: absolute;
       inset: 0;
       margin: 0;
-      padding: 22px 26px 48px;
+      padding: 22px var(--pad-x) var(--pad-b);
       border: 0;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas,
                    "Liberation Mono", "Courier New", monospace;
@@ -444,6 +443,9 @@
       pointer-events: none;
       color: var(--text);
       background: var(--bg);
+      contain: content;                 /* 限制重绘范围，明显降低长文本卡顿 */
+      /* 关键：右侧多留出滚动条宽度，保证与 textarea 换行位置一致 */
+      padding-right: calc(var(--pad-x) + var(--sbw));
     }
     #hl code {
       display: block;
@@ -467,7 +469,7 @@
       scrollbar-color: var(--scroll-thumb) transparent;
     }
 
-    /* 关键：半透明选区，让下层高亮文字透出来 */
+    /* 半透明选区，让下层高亮文字透出来 */
     #editor::selection {
       background: var(--sel-bg);
       color: transparent;
@@ -713,6 +715,7 @@
 
     /* ---------- 响应式 ---------- */
     @media (max-width: 900px) {
+      :root { --pad-x: 16px; --pad-b: 40px; }
       .brand-text small { display: none; }
       .btn { height: 32px; padding: 0 10px; font-size: 12.5px; gap: 5px; }
       .btn svg { width: 14px; height: 14px; }
@@ -723,7 +726,6 @@
       .opt-hint { display: none; }
       .statusbar { gap: 8px; font-size: 11px; padding: 6px 12px; }
       .statusbar #stFile { max-width: 28vw; }
-      #editor, #hl { padding: 16px 16px 40px; }
     }
     @media (max-width: 620px) {
       .brand-text { display: none; }
@@ -800,12 +802,7 @@
       还原
     </button>
 
-    <button id="btnTheme" class="btn icon-only" title="主题：跟随系统" aria-label="切换主题">
-      <svg class="ico-auto" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-           stroke-width="1.5" stroke-linejoin="round">
-        <circle cx="10" cy="10" r="7"/>
-        <path d="M10 3a7 7 0 0 1 0 14z" fill="currentColor" stroke="none"/>
-      </svg>
+    <button id="btnTheme" class="btn icon-only" title="主题：浅色" aria-label="切换主题">
       <svg class="ico-light" viewBox="0 0 20 20" fill="none" stroke="currentColor"
            stroke-width="1.5" stroke-linecap="round">
         <circle cx="10" cy="10" r="3.6"/>
@@ -951,46 +948,33 @@
     const toastEl     = $('toast');
 
     /* =========================================================
-     * 主题管理
+     * 主题管理（手动 light / dark，不跟随系统）
      * ======================================================= */
     const THEME_KEY = 'pte.theme';
-    const mql = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
-    let themePref = 'auto';
+    let themePref = 'light';
     try {
       const v = localStorage.getItem(THEME_KEY);
-      if (v === 'light' || v === 'dark' || v === 'auto') themePref = v;
+      if (v === 'light' || v === 'dark') themePref = v;
     } catch (e) {}
 
-    function themeLabel(p) {
-      return p === 'light' ? '浅色' : (p === 'dark' ? '深色' : '跟随系统');
-    }
+    function themeLabel(p) { return p === 'dark' ? '深色' : '浅色'; }
 
     function applyTheme() {
-      const dark = themePref === 'dark' ||
-        (themePref === 'auto' && mql && mql.matches);
       const root = document.documentElement;
-      root.setAttribute('data-theme', dark ? 'dark' : 'light');
+      root.setAttribute('data-theme', themePref);
       root.setAttribute('data-theme-pref', themePref);
-
-      const lbl = themeLabel(themePref);
-      btnTheme.title = '主题：' + lbl + '（点击切换）';
-      btnTheme.setAttribute('aria-label', '主题：' + lbl);
+      btnTheme.title = '主题：' + themeLabel(themePref) + '（点击切换）';
+      btnTheme.setAttribute('aria-label',
+        '切换到' + (themePref === 'dark' ? '浅色' : '深色') + '主题');
     }
 
     btnTheme.addEventListener('click', function () {
-      const order = ['auto', 'light', 'dark'];
-      themePref = order[(order.indexOf(themePref) + 1) % 3];
+      themePref = (themePref === 'dark') ? 'light' : 'dark';
       try { localStorage.setItem(THEME_KEY, themePref); } catch (e) {}
       applyTheme();
       toast('主题：' + themeLabel(themePref), 'ok');
     });
-
-    if (mql) {
-      const onSysChange = function () { if (themePref === 'auto') applyTheme(); };
-      if (mql.addEventListener) mql.addEventListener('change', onSysChange);
-      else if (mql.addListener) mql.addListener(onSysChange);
-    }
 
     /* =========================================================
      * 编码表
@@ -1124,11 +1108,34 @@
     };
 
     /* =========================================================
-     * 语法高亮引擎
+     * 语法高亮引擎（优化版）
      * ======================================================= */
     const RE_IDENT = /[A-Za-z_$\u00c0-\uffff][\w$\u00c0-\uffff]*/y;
     const RE_NUM   = /0[xX][0-9a-fA-F_]+|0[bB][01_]+|0[oO][0-7_]+|\d[\d_]*(?:\.[\d_]+)?(?:[eE][+-]?\d+)?/y;
-    const HL_LIMIT = 250000;
+
+    /* 高亮阈值：超过则退化为纯文本显示，避免卡顿 */
+    const HL_LIMIT      = 120000;   // 字符数上限
+    const HL_HTML_LIMIT = 900000;   // 生成 HTML 长度上限
+
+    /* 预编译语言定义（Set 只构建一次，而不是每次高亮都构建） */
+    function compileLangDef(def) {
+      if (!def || def.__c) return def ? def.__c : null;
+      const ci = !!def.ci;
+      const kwRaw   = (def.keywords || '').split(/\s+/).filter(Boolean);
+      const litRaw  = (def.literals || '').split(/\s+/).filter(Boolean);
+      const kw  = new Set(ci ? kwRaw.map(function (s) { return s.toLowerCase(); }) : kwRaw);
+      const lit = new Set(ci ? litRaw.map(function (s) { return s.toLowerCase(); }) : litRaw);
+      def.__c = {
+        ci: ci,
+        kw: kw,
+        lit: lit,
+        lineComments: def.lineComments || [],
+        blockComments: def.blockComments || [],
+        stringSet: new Set(def.strings || [])
+      };
+      return def.__c;
+    }
+    Object.keys(LANG_DEFS).forEach(function (k) { compileLangDef(LANG_DEFS[k]); });
 
     function escapeHtml(s) {
       return String(s).replace(/[&<>"]/g, function (c) {
@@ -1143,51 +1150,71 @@
       return '<span class="tok-' + cls + '">' + escapeHtml(text) + '</span>';
     }
 
+    function isIdentStart(ch) {
+      const c = ch.charCodeAt(0);
+      return (c >= 97 && c <= 122) || (c >= 65 && c <= 90) ||
+             c === 95 || c === 36 || c > 127;
+    }
+
+    const SP_COMMENT_OPEN = '<span class="tok-comment">';
+    const SP_STRING_OPEN  = '<span class="tok-string">';
+    const SP_NUMBER_OPEN  = '<span class="tok-number">';
+    const SP_KEY_OPEN     = '<span class="tok-keyword">';
+    const SP_LIT_OPEN     = '<span class="tok-literal">';
+    const SP_FUNC_OPEN    = '<span class="tok-func">';
+    const SP_CLOSE        = '</span>';
+
+    /* 通用高亮：用数组收集片段，最后 join，减少字符串拼接开销 */
     function highlightCode(code, langKey) {
       if (langKey === 'markup') return highlightMarkup(code);
 
       const def = LANG_DEFS[langKey];
       if (!def) return escapeHtml(code);
+      const c = def.__c || compileLangDef(def);
 
-      const ci = !!def.ci;
-      const kw   = new Set((def.keywords || '').split(/\s+/).filter(Boolean));
-      const lits = new Set((def.literals || '').split(/\s+/).filter(Boolean));
-      const lineComments  = def.lineComments || [];
-      const blockComments = def.blockComments || [];
-      const stringQuotes  = def.strings || [];
+      const lineComments  = c.lineComments;
+      const blockComments = c.blockComments;
+      const stringSet     = c.stringSet;
+      const kw            = c.kw;
+      const lit           = c.lit;
+      const ci            = c.ci;
 
-      let out = '';
+      const out = [];
       let i = 0;
       const n = code.length;
 
       while (i < n) {
-        let done = false;
+        let handled = false;
 
+        /* 块注释 */
         for (let k = 0; k < blockComments.length; k++) {
-          const open = blockComments[k][0], close = blockComments[k][1];
+          const open = blockComments[k][0];
           if (code.startsWith(open, i)) {
+            const close = blockComments[k][1];
             const e = code.indexOf(close, i + open.length);
             const stop = e === -1 ? n : e + close.length;
-            out += span('comment', code.slice(i, stop));
-            i = stop; done = true; break;
+            out.push(SP_COMMENT_OPEN, escapeHtml(code.slice(i, stop)), SP_CLOSE);
+            i = stop; handled = true; break;
           }
         }
-        if (done) continue;
+        if (handled) continue;
 
+        /* 行注释 */
         for (let k = 0; k < lineComments.length; k++) {
           const open = lineComments[k];
           if (code.startsWith(open, i)) {
             let e = code.indexOf('\n', i);
             if (e === -1) e = n;
-            out += span('comment', code.slice(i, e));
-            i = e; done = true; break;
+            out.push(SP_COMMENT_OPEN, escapeHtml(code.slice(i, e)), SP_CLOSE);
+            i = e; handled = true; break;
           }
         }
-        if (done) continue;
+        if (handled) continue;
 
         const ch = code[i];
 
-        if (stringQuotes.indexOf(ch) !== -1) {
+        /* 字符串 */
+        if (stringSet.has(ch)) {
           let j = i + 1;
           while (j < n) {
             const cj = code[j];
@@ -1196,74 +1223,82 @@
             if (ch !== '`' && cj === '\n') break;
             j++;
           }
-          out += span('string', code.slice(i, j));
+          out.push(SP_STRING_OPEN, escapeHtml(code.slice(i, j)), SP_CLOSE);
           i = j; continue;
         }
 
+        /* 数字 */
         if (ch >= '0' && ch <= '9') {
           const prev = i > 0 ? code[i - 1] : '';
           if (!/[A-Za-z0-9_$]/.test(prev)) {
             RE_NUM.lastIndex = i;
             const m = RE_NUM.exec(code);
             if (m) {
-              out += span('number', m[0]);
+              out.push(SP_NUMBER_OPEN, m[0], SP_CLOSE);
               i = RE_NUM.lastIndex;
               continue;
             }
           }
         }
 
-        if (/[A-Za-z_$\u00c0-\uffff]/.test(ch)) {
+        /* 标识符 / 关键字 */
+        if (isIdentStart(ch)) {
           RE_IDENT.lastIndex = i;
           const m = RE_IDENT.exec(code);
           if (m) {
             const word = m[0];
             i = RE_IDENT.lastIndex;
             const key = ci ? word.toLowerCase() : word;
-            if (kw.has(key))          out += span('keyword', word);
-            else if (lits.has(key))   out += span('literal', word);
-            else if (code[i] === '(') out += span('func', word);
-            else                      out += escapeHtml(word);
+            if (kw.has(key))          out.push(SP_KEY_OPEN, word, SP_CLOSE);
+            else if (lit.has(key))    out.push(SP_LIT_OPEN, word, SP_CLOSE);
+            else if (code[i] === '(') out.push(SP_FUNC_OPEN, word, SP_CLOSE);
+            else                      out.push(word);
             continue;
           }
         }
 
-        out += escapeHtml(ch);
+        /* 普通字符：仅对可能产生 HTML 冲突的字符做转义 */
+        const cc = code.charCodeAt(i);
+        if (cc === 38 || cc === 60 || cc === 62 || cc === 34) {
+          out.push(escapeHtml(ch));
+        } else {
+          out.push(ch);
+        }
         i++;
       }
-      return out;
+      return out.join('');
     }
 
     const RE_MARKUP = /<!--[\s\S]*?(?:-->|$)|<!\[CDATA\[[\s\S]*?(?:\]\]>|$)|<!DOCTYPE[^>]*>|<\?[\s\S]*?(?:\?>|$)|<\/?([A-Za-z][\w:.\-]*)|(\/?>)|("[^"\n]*"|'[^'\n]*')|(&[a-zA-Z#][\w]*;)/g;
 
     function highlightMarkup(code) {
-      let out = '';
+      const out = [];
       let last = 0;
       let m;
       RE_MARKUP.lastIndex = 0;
 
       while ((m = RE_MARKUP.exec(code))) {
-        out += escapeHtml(code.slice(last, m.index));
+        if (m.index > last) out.push(escapeHtml(code.slice(last, m.index)));
         const t = m[0];
 
         if (t.charCodeAt(0) === 60 && (t.charAt(1) === '!' || t.charAt(1) === '?')) {
-          out += span('comment', t);
+          out.push(span('comment', t));
         } else if (m[2]) {
-          out += span('punct', t);
+          out.push(span('punct', t));
         } else if (m[3]) {
-          out += span('string', t);
+          out.push(span('string', t));
         } else if (m[4]) {
-          out += span('number', t);
+          out.push(span('number', t));
         } else if (m[1]) {
           const nameStart = t.length - m[1].length;
-          out += span('punct', t.slice(0, nameStart)) + span('tag', m[1]);
+          out.push(span('punct', t.slice(0, nameStart)), span('tag', m[1]));
         } else {
-          out += escapeHtml(t);
+          out.push(escapeHtml(t));
         }
         last = m.index + t.length;
       }
-      out += escapeHtml(code.slice(last));
-      return out;
+      if (last < code.length) out.push(escapeHtml(code.slice(last)));
+      return out.join('');
     }
 
     /* =========================================================
@@ -1430,45 +1465,101 @@
     }
 
     /* =========================================================
-     * 高亮渲染
+     * 高亮渲染（带节流 + 大文本保护）
      * ======================================================= */
-    let hlRaf = null;
+    const HL_INTERVAL = 80;    // ms
+    let hlTimer = null;
+    let hlLastRun = 0;
+
+    let langCacheKey = '\u0000';
+    let langCacheVal = null;
 
     function resolveLang() {
       if (state.lang !== 'auto') return state.lang;
-      return detectLang(state.fileName, editor.value);
+      const text = editor.value;
+      const head = text.length > 4000 ? text.slice(0, 4000) : text;
+      const key = state.fileName + '\u0000' + head;
+      if (key === langCacheKey) return langCacheVal;
+      const val = detectLang(state.fileName, text);
+      langCacheKey = key;
+      langCacheVal = val;
+      return val;
     }
 
     function refreshHighlight() {
       if (!state.loaded) return;
+
       const text = editor.value;
       const lang = resolveLang();
       state.resolvedLang = lang;
 
-      if (text.length > HL_LIMIT) {
-        hlCode.textContent = text + '\n';
-      } else if (lang && lang !== 'plain' && (LANG_DEFS[lang] || lang === 'markup')) {
-        hlCode.innerHTML = highlightCode(text, lang) + '\n';
+      const needHighlight = text.length <= HL_LIMIT &&
+                            lang && lang !== 'plain' &&
+                            (lang === 'markup' || LANG_DEFS[lang]);
+
+      if (needHighlight) {
+        const html = highlightCode(text, lang);
+        if (html.length <= HL_HTML_LIMIT) {
+          hlCode.innerHTML = html + '\n';
+        } else {
+          hlCode.textContent = text + '\n';
+        }
       } else {
         hlCode.textContent = text + '\n';
       }
-      syncScroll();
+
+      syncGutter();
+      syncScrollNow();
+      updateStatus();
     }
 
     function scheduleHighlight() {
-      if (hlRaf) return;
-      hlRaf = requestAnimationFrame(function () {
-        hlRaf = null;
+      if (hlTimer) return;
+      const wait = Math.max(0, HL_INTERVAL - (performance.now() - hlLastRun));
+      hlTimer = setTimeout(function () {
+        hlTimer = null;
+        hlLastRun = performance.now();
         refreshHighlight();
-      });
+      }, wait);
     }
 
+    /* 立即执行一次（用于打开/新建/切换语言等场景） */
+    function flushHighlight() {
+      if (hlTimer) { clearTimeout(hlTimer); hlTimer = null; }
+      hlLastRun = performance.now();
+      refreshHighlight();
+    }
+
+    /* ---------- 滚动同步 ---------- */
+    let scrollRaf = 0;
     function syncScroll() {
+      if (scrollRaf) return;
+      scrollRaf = requestAnimationFrame(function () {
+        scrollRaf = 0;
+        hl.scrollTop = editor.scrollTop;
+        hl.scrollLeft = editor.scrollLeft;
+      });
+    }
+    function syncScrollNow() {
       hl.scrollTop = editor.scrollTop;
       hl.scrollLeft = editor.scrollLeft;
     }
-
     editor.addEventListener('scroll', syncScroll, { passive: true });
+
+    /* ---------- 滚动条宽度对齐（避免换行错位） ---------- */
+    let gutterW = -1;
+    function syncGutter() {
+      const w = Math.max(0,
+        Math.round(editor.getBoundingClientRect().width - editor.clientWidth));
+      if (w !== gutterW) {
+        gutterW = w;
+        document.documentElement.style.setProperty('--sbw', w + 'px');
+      }
+    }
+    if (window.ResizeObserver) {
+      try { new ResizeObserver(syncGutter).observe(editor); } catch (e) {}
+    }
+    window.addEventListener('resize', syncGutter, { passive: true });
 
     /* =========================================================
      * 打开 / 加载 / 新建
@@ -1521,6 +1612,8 @@
         state.loaded    = true;
         state.isNew     = false;
         state.lang      = 'auto';
+        langCacheKey    = '\u0000';
+        langCacheVal    = null;
 
         editor.value = normalized;
         editor.scrollTop = 0;
@@ -1532,16 +1625,14 @@
 
         setDirty(false);
         updateOptionsUI();
-        refreshHighlight();
-        updateStatus();
+        flushHighlight();
+        editor.focus();
 
         if (maybeBinary) {
           toast('警告：文件疑似二进制或编码识别有误，可手动切换「读取编码」', 'warn');
         } else {
           toast('已加载：' + file.name, 'ok');
         }
-
-        editor.focus();
       } catch (err) {
         console.error(err);
         toast('读取失败：' + (err && err.message ? err.message : err), 'error');
@@ -1558,6 +1649,8 @@
       state.loaded    = true;
       state.isNew     = true;
       state.lang      = 'auto';
+      langCacheKey    = '\u0000';
+      langCacheVal    = null;
 
       editor.value = '';
       editor.scrollTop = 0;
@@ -1568,8 +1661,7 @@
 
       setDirty(false);
       updateOptionsUI();
-      refreshHighlight();
-      updateStatus();
+      flushHighlight();
       editor.focus();
       toast('已新建空白文件（导出为 .txt）', 'ok');
     }
@@ -1665,10 +1757,10 @@
         toast('已下载：' + state.fileName, 'ok');
       }
 
-      state.encoding = enc;
+      state.encoding  = enc;
       state.savedText = editor.value;
-      state.rawBytes = bytes;
-      state.isNew = false;
+      state.rawBytes  = bytes;
+      state.isNew     = false;
       setDirty(false);
       updateOptionsUI();
       updateStatus();
@@ -1707,9 +1799,9 @@
     function updateOptionsUI() {
       const on = state.loaded;
 
-      selEol.disabled = !on;
+      selEol.disabled    = !on;
       selEncode.disabled = !on;
-      selLang.disabled = !on;
+      selLang.disabled   = !on;
 
       if (!on) {
         selDecode.disabled = true;
@@ -1717,10 +1809,8 @@
       }
 
       selDecode.disabled = state.isNew;
-      if (!state.isNew) {
-        if (selDecode.querySelector('option[value="' + state.encoding + '"]')) {
-          selDecode.value = state.encoding;
-        }
+      if (!state.isNew && selDecode.value !== state.encoding) {
+        selDecode.value = state.encoding;
       }
       selEol.value = (state.eol === '\r\n') ? 'crlf' : 'lf';
       selLang.value = state.lang;
@@ -1777,7 +1867,7 @@
 
       stSize.textContent = editor.value.length + ' 字符';
 
-      btnSave.disabled = false;
+      btnSave.disabled   = false;
       btnSaveAs.disabled = false;
       btnRevert.disabled = !state.dirty;
 
@@ -1790,6 +1880,7 @@
     }
 
     function setDirty(isDirty) {
+      if (state.dirty === isDirty) return;
       state.dirty = isDirty;
       stDirty.textContent = isDirty ? '已修改' : '未修改';
       stDirty.classList.toggle('is-dirty', isDirty);
@@ -1825,31 +1916,31 @@
       if (state.dirty && !confirm('确定放弃未保存的修改，还原到上次保存的内容？')) return;
       editor.value = state.savedText;
       setDirty(false);
-      refreshHighlight();
-      updateStatus();
+      flushHighlight();
       toast('已还原', 'ok');
     });
 
     editor.addEventListener('input', function () {
+      const v = editor.value;
+      setDirty(v !== state.savedText);
+      stSize.textContent = v.length + ' 字符';
+      scheduleHighlight();
+    });
+
+    /* Tab 缩进 */
+    editor.addEventListener('keydown', function (e) {
+      if (e.key !== 'Tab') return;
+      e.preventDefault();
+      const s = editor.selectionStart, t = editor.selectionEnd;
+      const v = editor.value;
+      editor.value = v.slice(0, s) + '\t' + v.slice(t);
+      editor.selectionStart = editor.selectionEnd = s + 1;
       setDirty(editor.value !== state.savedText);
       stSize.textContent = editor.value.length + ' 字符';
       scheduleHighlight();
     });
 
-    // Tab 缩进
-    editor.addEventListener('keydown', function (e) {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        const s = editor.selectionStart, t = editor.selectionEnd;
-        editor.value = editor.value.slice(0, s) + '\t' + editor.value.slice(t);
-        editor.selectionStart = editor.selectionEnd = s + 1;
-        setDirty(editor.value !== state.savedText);
-        stSize.textContent = editor.value.length + ' 字符';
-        scheduleHighlight();
-      }
-    });
-
-    // 读取编码切换
+    /* 读取编码切换 */
     selDecode.addEventListener('change', function () {
       if (!state.loaded || state.isNew || !state.rawBytes) return;
 
@@ -1863,23 +1954,24 @@
       const text = decodeWith(state.rawBytes, newEnc);
       const normalized = toLF(text);
 
-      state.encoding = newEnc;
-      state.eol = detectEol(text);
+      state.encoding  = newEnc;
+      state.eol       = detectEol(text);
       state.savedText = normalized;
+      langCacheKey    = '\u0000';
+      langCacheVal    = null;
 
       editor.value = normalized;
       editor.scrollTop = 0;
       setDirty(false);
       updateOptionsUI();
-      refreshHighlight();
-      updateStatus();
+      flushHighlight();
 
       const bad = (normalized.match(/\uFFFD/g) || []).length;
       if (bad > 0) toast('该编码下有 ' + bad + ' 个字符无法解码', 'warn');
       else toast('已按 ' + encodingLabel(newEnc) + ' 重新读取', 'ok');
     });
 
-    // 换行符切换
+    /* 换行符切换 */
     selEol.addEventListener('change', function () {
       const newEol = (selEol.value === 'crlf') ? '\r\n' : '\n';
       if (state.eol === newEol) return;
@@ -1888,17 +1980,16 @@
       updateStatus();
     });
 
-    // 保存编码切换
+    /* 保存编码切换 */
     selEncode.addEventListener('change', updateStatus);
 
-    // 语法切换
+    /* 语法切换 */
     selLang.addEventListener('change', function () {
       state.lang = selLang.value;
-      refreshHighlight();
-      updateStatus();
+      flushHighlight();
     });
 
-    // 快捷键
+    /* 快捷键 */
     document.addEventListener('keydown', function (e) {
       const mod = e.ctrlKey || e.metaKey;
       if (!mod) return;
@@ -1982,6 +2073,7 @@
     applyTheme();
     updateOptionsUI();
     updateStatus();
+    syncGutter();
   })();
 </script>
 </body>
