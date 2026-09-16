@@ -19,9 +19,7 @@
     .app{width:100%;max-width:920px;}
 
     /* ---------- 顶部数据条 ---------- */
-    .topbar{
-      display:flex;gap:10px;flex-wrap:wrap;
-    }
+    .topbar{display:flex;gap:10px;flex-wrap:wrap;}
     .stat{
       flex:1;min-width:120px;
       background:rgba(255,255,255,.07);
@@ -43,6 +41,19 @@
       background:rgba(0,0,0,.22);
       border:1px solid rgba(255,255,255,.08);
       box-shadow:inset 0 0 80px rgba(0,0,0,.45), 0 12px 30px rgba(0,0,0,.35);
+      transition:box-shadow .35s ease;
+    }
+    .table.result-win{
+      box-shadow:inset 0 0 80px rgba(0,0,0,.45),
+                 0 0 0 1px rgba(125,255,176,.45),
+                 0 0 34px rgba(80,255,150,.22),
+                 0 12px 30px rgba(0,0,0,.35);
+    }
+    .table.result-lose{
+      box-shadow:inset 0 0 80px rgba(0,0,0,.45),
+                 0 0 0 1px rgba(255,120,120,.4),
+                 0 0 34px rgba(255,80,80,.18),
+                 0 12px 30px rgba(0,0,0,.35);
     }
     .side{display:flex;flex-direction:column;gap:8px;}
     .player-side{align-items:flex-start;}
@@ -58,6 +69,8 @@
     }
     .score.bust{background:#c62828;}
     .score.bj{background:#f9a825;color:#1a1a1a;}
+    @keyframes scorePop{0%{transform:scale(1)}45%{transform:scale(1.22)}100%{transform:scale(1)}}
+    .score.pop{animation:scorePop .32s cubic-bezier(.3,1.4,.5,1);}
 
     .cards{
       display:flex;gap:9px;min-height:112px;align-items:center;
@@ -103,6 +116,8 @@
     }
     .message.win{color:#7dffb0;text-shadow:0 0 14px rgba(80,255,150,.35);}
     .message.lose{color:#ff8b8b;text-shadow:0 0 14px rgba(255,80,80,.3);}
+    @keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    .message.show{animation:msgIn .28s ease;}
 
     /* ---------- 操作面板 ---------- */
     .panel{
@@ -149,6 +164,22 @@
       text-align:center;font-size:12px;color:#78a892;margin-top:12px;line-height:1.7;
     }
 
+    /* ---------- 音效开关 ---------- */
+    .sound-toggle{
+      position:fixed;right:14px;bottom:14px;z-index:60;
+      width:48px;height:48px;border-radius:50%;
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(0,0,0,.42);
+      color:#eaf5ef;font-size:20px;line-height:1;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      backdrop-filter:blur(8px);
+      box-shadow:0 6px 18px rgba(0,0,0,.4);
+      transition:transform .12s,background .18s,opacity .18s;
+    }
+    .sound-toggle:hover{background:rgba(0,0,0,.62);}
+    .sound-toggle:active{transform:scale(.9);}
+    .sound-toggle.off{opacity:.5;}
+
     @media (max-width:600px){
       .card{width:56px;height:80px;border-radius:7px;}
       .card .rank{font-size:16px;top:4px;left:6px;}
@@ -159,6 +190,7 @@
       .stat .value{font-size:17px;}
       .message{font-size:14px;}
       .btn{min-width:100px;padding:12px;font-size:14px;}
+      .sound-toggle{width:42px;height:42px;font-size:17px;}
     }
   </style>
 </head>
@@ -171,7 +203,7 @@
     <div class="stat"><span class="label">牌堆剩余</span><span class="value" id="deckCount">312</span></div>
   </div>
 
-  <div class="table">
+  <div class="table" id="table">
     <div class="side">
       <div class="hand-label">庄家 DEALER <span class="score" id="dealerScore">-</span></div>
       <div class="cards" id="dealerCards"></div>
@@ -213,18 +245,188 @@
   </div>
 
   <div class="tip">
-    初始资金 30,000 ｜ 单注最低 200 ｜ 黑杰克赔率 1.5 倍 ｜ 庄家 17 点停牌 ｜ 6 副牌
+    初始资金 30,000 ｜ 单注最低 200 ｜ 黑杰克赔率 1.5 倍 ｜ 庄家 17 点停牌 ｜ 6 副牌<br>
+    快捷键：H 要牌 ｜ S 停牌 ｜ D 加倍 ｜ Enter 开始发牌 ｜ M 静音
   </div>
 </div>
+
+<button class="sound-toggle" id="soundBtn" title="音效开关（M）" aria-label="音效开关">🔊</button>
 
 <script>
   (function () {
     'use strict';
 
+    /* ==================== 音效引擎（Web Audio 合成，无外部资源） ==================== */
+    const Sound = (function () {
+      let ctx = null, master = null, noiseBuf = null, muted = false;
+
+      try { muted = localStorage.getItem('bj_muted') === '1'; } catch (e) { /* ignore */ }
+
+      function ensure() {
+        if (muted) return null;
+        if (!ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return null;
+          ctx = new AC();
+          master = ctx.createGain();
+          master.gain.value = 0.55;
+          master.connect(ctx.destination);
+        }
+        if (ctx.state === 'suspended') ctx.resume();
+        return ctx;
+      }
+
+      function getNoise(c) {
+        if (noiseBuf) return noiseBuf;
+        const len = Math.floor(c.sampleRate * 0.5);
+        noiseBuf = c.createBuffer(1, len, c.sampleRate);
+        const d = noiseBuf.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+        return noiseBuf;
+      }
+
+      /* 单音（支持频率滑音） */
+      function tone(o) {
+        const c = ensure(); if (!c) return;
+        const t   = o.at == null ? c.currentTime : o.at;
+        const dur = o.dur || 0.2;
+        const osc = c.createOscillator();
+        osc.type = o.type || 'sine';
+        osc.frequency.setValueAtTime(o.freq, t);
+        if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + dur);
+
+        const g   = c.createGain();
+        const vol = o.gain == null ? 0.2 : o.gain;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(vol, t + (o.attack || 0.012));
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+        osc.connect(g).connect(master);
+        osc.start(t);
+        osc.stop(t + dur + 0.05);
+      }
+
+      /* 噪声脉冲（纸牌摩擦 / 翻牌 / 爆牌） */
+      function noise(o) {
+        const c = ensure(); if (!c) return;
+        const t   = o.at == null ? c.currentTime : o.at;
+        const dur = o.dur || 0.1;
+
+        const src = c.createBufferSource();
+        src.buffer = getNoise(c);
+        src.playbackRate.value = o.rate || 1;
+
+        const f = c.createBiquadFilter();
+        f.type = o.filterType || 'bandpass';
+        f.frequency.setValueAtTime(o.freq || 1800, t);
+        if (o.to) f.frequency.exponentialRampToValueAtTime(o.to, t + dur);
+        f.Q.value = o.q == null ? 1 : o.q;
+
+        const g   = c.createGain();
+        const vol = o.gain == null ? 0.2 : o.gain;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(vol, t + 0.006);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+        src.connect(f).connect(g).connect(master);
+        src.start(t);
+        src.stop(t + dur + 0.05);
+      }
+
+      const api = {
+        get muted() { return muted; },
+
+        toggle() {
+          muted = !muted;
+          try { localStorage.setItem('bj_muted', muted ? '1' : '0'); } catch (e) { /* ignore */ }
+          if (!muted) { ensure(); api.click(); }
+          return muted;
+        },
+
+        unlock() { ensure(); },
+
+        /* 按钮点击 */
+        click() {
+          tone({ freq: 640, to: 420, dur: 0.07, type: 'square', gain: 0.05 });
+        },
+
+        /* 发牌：纸张滑过 */
+        deal() {
+          noise({ freq: 2800, to: 700, dur: 0.11, gain: 0.28, q: 0.8 });
+          tone({ freq: 180, to: 110, dur: 0.07, type: 'triangle', gain: 0.07 });
+        },
+
+        /* 翻暗牌 */
+        flip() {
+          noise({ freq: 1000, to: 3200, dur: 0.12, gain: 0.2, q: 0.7 });
+          tone({ freq: 300, to: 200, dur: 0.1, type: 'triangle', gain: 0.08 });
+        },
+
+        /* 筹码碰撞 */
+        chip() {
+          const c = ensure(); if (!c) return;
+          const t = c.currentTime;
+          for (let i = 0; i < 3; i++) {
+            const at = t + i * 0.03;
+            noise({ at, freq: 2600 + Math.random() * 1600, to: 1200, dur: 0.055, gain: 0.13, q: 2.2 });
+            tone({ at, freq: 820 + Math.random() * 300, to: 480, dur: 0.06, type: 'square', gain: 0.045 });
+          }
+        },
+
+        /* 获胜：上行琶音 */
+        win() {
+          const c = ensure(); if (!c) return;
+          const t = c.currentTime;
+          [523.25, 659.25, 783.99, 1046.5].forEach((f, i) =>
+            tone({ at: t + i * 0.08, freq: f, dur: 0.3, type: 'triangle', gain: 0.19 })
+          );
+          tone({ at: t + 0.32, freq: 1568, dur: 0.45, type: 'sine', gain: 0.09 });
+        },
+
+        /* 落败：下行音阶 */
+        lose() {
+          const c = ensure(); if (!c) return;
+          const t = c.currentTime;
+          [392, 329.63, 261.63, 196].forEach((f, i) =>
+            tone({ at: t + i * 0.11, freq: f, dur: 0.34, type: 'triangle', gain: 0.12 })
+          );
+        },
+
+        /* 平局 */
+        push() {
+          const c = ensure(); if (!c) return;
+          const t = c.currentTime;
+          tone({ at: t,       freq: 440, dur: 0.18, type: 'triangle', gain: 0.14 });
+          tone({ at: t + 0.15, freq: 440, dur: 0.24, type: 'triangle', gain: 0.12 });
+        },
+
+        /* 黑杰克：小号角 */
+        blackjack() {
+          const c = ensure(); if (!c) return;
+          const t = c.currentTime;
+          [523.25, 659.25, 783.99, 1046.5, 1318.51].forEach((f, i) =>
+            tone({ at: t + i * 0.065, freq: f, dur: 0.55, type: 'triangle', gain: 0.17 })
+          );
+          tone({ at: t, freq: 130.81, dur: 1.0, type: 'sine', gain: 0.15 });
+          noise({ at: t + 0.26, freq: 6000, to: 10000, dur: 0.55, gain: 0.05, q: 0.6, filterType: 'highpass' });
+        },
+
+        /* 爆牌 */
+        bust() {
+          const c = ensure(); if (!c) return;
+          const t = c.currentTime;
+          tone({ at: t, freq: 240, to: 70, dur: 0.5, type: 'sawtooth', gain: 0.13 });
+          noise({ at: t, freq: 900, to: 120, dur: 0.45, gain: 0.16, q: 0.7, filterType: 'lowpass' });
+        }
+      };
+
+      return api;
+    })();
+
     /* ==================== 常量 ==================== */
     const MIN_BET       = 200;
     const START_BALANCE = 30000;
-    const DECKS         = 6;          // 6 副牌
+    const DECKS         = 6;
 
     const SUITS = [
       { s: '♠', color: 'b' },
@@ -258,7 +460,6 @@
           }
         }
       }
-      // Fisher–Yates 洗牌
       for (let i = deck.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [deck[i], deck[j]] = [deck[j], deck[i]];
@@ -307,33 +508,48 @@
       container.appendChild(el);
     }
 
+    function bump(el) {
+      el.classList.remove('pop');
+      void el.offsetWidth;
+      el.classList.add('pop');
+    }
+
     function updateScores() {
-      // 玩家
+      /* --- 玩家 --- */
       const pEl = $('playerScore');
+      let pTxt;
       if (!playerHand.length) {
-        pEl.textContent = '-';
+        pTxt = '-';
         pEl.className = 'score';
       } else {
         const info = handInfo(playerHand);
-        let t = info.total;
-        pEl.textContent = (info.soft && t !== 21 ? '软 ' : '') + t;
+        const t = info.total;
+        pTxt = (info.soft && t !== 21 ? '软 ' : '') + t;
         pEl.className = 'score' + (t > 21 ? ' bust' : (t === 21 ? ' bj' : ''));
       }
+      if (pEl.textContent !== pTxt) {
+        pEl.textContent = pTxt;
+        if (pTxt !== '-') bump(pEl);
+      }
 
-      // 庄家（有暗牌时只显示明牌）
+      /* --- 庄家（有暗牌时只显示明牌） --- */
       const dEl = $('dealerScore');
       const visible = dealerHand.filter(c => !c.hidden);
+      let dTxt;
       if (!visible.length) {
-        dEl.textContent = '-';
+        dTxt = '-';
         dEl.className = 'score';
       } else {
         const info = handInfo(visible);
         const hasHole = dealerHand.some(c => c.hidden);
-        let t = info.total;
-        let txt = (info.soft && t !== 21 ? '软 ' : '') + t;
-        if (hasHole) txt += ' + ?';
-        dEl.textContent = txt;
-        dEl.className = 'score' + (info.total > 21 ? ' bust' : '');
+        const t = info.total;
+        dTxt = (info.soft && t !== 21 ? '软 ' : '') + t;
+        if (hasHole) dTxt += ' + ?';
+        dEl.className = 'score' + (t > 21 ? ' bust' : '');
+      }
+      if (dEl.textContent !== dTxt) {
+        dEl.textContent = dTxt;
+        if (dTxt !== '-') bump(dEl);
       }
     }
 
@@ -347,11 +563,19 @@
       const el = $('message');
       el.textContent = text;
       el.className = 'message' + (cls ? ' ' + cls : '');
+      void el.offsetWidth;
+      el.classList.add('show');
     }
 
     function showPanel(which) {
       $('betPanel').hidden    = (which !== 'bet');
       $('actionPanel').hidden = (which !== 'action');
+    }
+
+    function setTableResult(cls) {
+      const t = $('table');
+      t.classList.remove('result-win', 'result-lose');
+      if (cls) t.classList.add(cls);
     }
 
     function refreshButtons() {
@@ -365,8 +589,9 @@
     /* ==================== 下注 ==================== */
     function addBet(v) {
       if (state !== 'bet' || busy) return;
-      if (bet + v > balance) { setMessage('余额不足，无法加注', 'lose'); return; }
+      if (bet + v > balance) { setMessage('余额不足，无法加注', 'lose'); Sound.bust(); return; }
       bet += v;
+      Sound.chip();
       setMessage('已下注 ' + fmt(bet) + '，点击「开始发牌」');
       updateStats();
       refreshButtons();
@@ -375,6 +600,7 @@
     function clearBet() {
       if (state !== 'bet' || busy) return;
       bet = 0;
+      Sound.click();
       setMessage('请下注（每次最少 200）');
       updateStats();
       refreshButtons();
@@ -384,6 +610,7 @@
     async function dealTo(who, hole) {
       const card = drawCard();
       card.hidden = !!hole;
+      Sound.deal();
       if (who === 'player') {
         playerHand.push(card);
         appendCard($('playerCards'), card);
@@ -400,6 +627,7 @@
     function revealHole() {
       const hole = $('dealerCards').querySelector('.card.hole');
       if (!hole) return;
+      Sound.flip();
       dealerHand.forEach(c => c.hidden = false);
       const el = makeCardEl(dealerHand[1]);
       el.classList.add('deal');
@@ -413,6 +641,9 @@
       if (bet < MIN_BET) { setMessage('最少下注 ' + MIN_BET, 'lose'); return; }
       if (bet > balance) { setMessage('余额不足', 'lose'); return; }
 
+      Sound.unlock();
+      Sound.click();
+
       busy = true;
       balance -= bet;
       updateStats();
@@ -422,6 +653,7 @@
       dealerHand = [];
       $('playerCards').innerHTML = '';
       $('dealerCards').innerHTML = '';
+      setTableResult(null);
       showPanel('none');
       setMessage('发牌中…');
       updateScores();
@@ -432,14 +664,14 @@
       await dealTo('player');
       await dealTo('dealer', true);   // 庄家暗牌
 
-      const p = handInfo(playerHand).total;
-      const d = handInfo(dealerHand).total;
+      const p   = handInfo(playerHand).total;
+      const d   = handInfo(dealerHand).total;
       const pBJ = (playerHand.length === 2 && p === 21);
       const dBJ = (dealerHand.length === 2 && d === 21);
 
-      // 任一方黑杰克，立即结算
       if (pBJ || dBJ) {
         setMessage('黑杰克！');
+        Sound.blackjack();
         await sleep(500);
         await endRound();
         return;
@@ -462,12 +694,12 @@
 
       if (t > 21) {
         setMessage('爆牌！');
+        Sound.bust();
         await sleep(300);
         await endRound();
         return;
       }
       if (t === 21) {
-        // 21 点自动停牌
         await sleep(300);
         await dealerPlay();
         return;
@@ -481,18 +713,20 @@
       if (state !== 'playing' || busy) return;
       busy = true;
       refreshButtons();
+      Sound.click();
       await dealerPlay();
     }
 
     async function onDouble() {
       if (state !== 'playing' || busy) return;
       if (playerHand.length !== 2) return;
-      if (balance < bet) { setMessage('余额不足，无法加倍', 'lose'); return; }
+      if (balance < bet) { setMessage('余额不足，无法加倍', 'lose'); Sound.bust(); return; }
 
       busy = true;
       balance -= bet;
       bet *= 2;
       updateStats();
+      Sound.chip();
       setMessage('加倍！下注 ' + fmt(bet));
       refreshButtons();
 
@@ -501,6 +735,7 @@
 
       if (t > 21) {
         setMessage('爆牌！');
+        Sound.bust();
         await sleep(300);
         await endRound();
         return;
@@ -519,7 +754,7 @@
       revealHole();
       await sleep(450);
 
-      // 庄家 17 点（含软17）停牌
+      // 庄家 17 点（含软 17）停牌
       while (handInfo(dealerHand).total < 17) {
         await dealTo('dealer');
       }
@@ -547,31 +782,41 @@
       if (pBJ && dBJ) {
         payout = bet;
         msg = '双方都是黑杰克 · 平局，退回下注';
+        Sound.push();
       } else if (pBJ) {
         payout = bet * 2.5;                       // 本金 + 1.5 倍奖金
         msg = '黑杰克！赢得 ' + fmt(bet * 1.5);
         cls = 'win';
+        Sound.blackjack();
       } else if (p > 21) {
         msg = '你爆牌了（' + p + ' 点）· 输掉 ' + fmt(bet);
         cls = 'lose';
+        Sound.bust();
       } else if (dBJ) {
         msg = '庄家黑杰克（21 点）· 输掉 ' + fmt(bet);
         cls = 'lose';
+        Sound.lose();
       } else if (d > 21) {
         payout = bet * 2;
         msg = '庄家爆牌（' + d + ' 点）· 赢得 ' + fmt(bet);
         cls = 'win';
+        Sound.win();
       } else if (p > d) {
         payout = bet * 2;
         msg = '你赢了 ' + p + ' : ' + d + ' · 赢得 ' + fmt(bet);
         cls = 'win';
+        Sound.win();
       } else if (p < d) {
         msg = '你输了 ' + p + ' : ' + d + ' · 输掉 ' + fmt(bet);
         cls = 'lose';
+        Sound.lose();
       } else {
         payout = bet;
         msg = '平局 ' + p + ' : ' + d + ' · 退回下注';
+        Sound.push();
       }
+
+      setTableResult(cls || null);
 
       balance += payout;
       updateStats();
@@ -584,6 +829,7 @@
       dealerHand = [];
       $('playerCards').innerHTML = '';
       $('dealerCards').innerHTML = '';
+      setTableResult(null);
       bet = 0;
       state = 'bet';
       busy = false;
@@ -603,6 +849,7 @@
     /* ==================== 重新开始 ==================== */
     function restart() {
       if (busy) return;
+      Sound.click();
       balance = START_BALANCE;
       bet = 0;
       state = 'bet';
@@ -612,6 +859,7 @@
       $('playerCards').innerHTML = '';
       $('dealerCards').innerHTML = '';
       $('restartBtn').style.display = 'none';
+      setTableResult(null);
       newShoe();
       updateScores();
       updateStats();
@@ -620,18 +868,38 @@
       setMessage('已重置资金 30,000，请下注（每次最少 200）');
     }
 
+    /* ==================== 音效开关 ==================== */
+    const sndBtn = $('soundBtn');
+    function refreshSoundBtn() {
+      sndBtn.textContent = Sound.muted ? '🔇' : '🔊';
+      sndBtn.classList.toggle('off', Sound.muted);
+    }
+    sndBtn.addEventListener('click', () => {
+      Sound.toggle();
+      refreshSoundBtn();
+    });
+
+    // 首次交互时解锁 AudioContext（浏览器自动播放策略）
+    window.addEventListener('pointerdown', function unlockOnce() {
+      Sound.unlock();
+      window.removeEventListener('pointerdown', unlockOnce);
+    }, { passive: true });
+
     /* ==================== 事件绑定 ==================== */
     document.querySelectorAll('.chip[data-v]').forEach(btn => {
       btn.addEventListener('click', () => addBet(Number(btn.dataset.v)));
     });
+
     $('allIn').addEventListener('click', () => {
       if (state !== 'bet' || busy) return;
-      if (balance < MIN_BET) { setMessage('余额不足', 'lose'); return; }
+      if (balance < MIN_BET) { setMessage('余额不足', 'lose'); Sound.bust(); return; }
       bet = balance;
+      Sound.chip();
       setMessage('全下 ' + fmt(bet) + '！');
       updateStats();
       refreshButtons();
     });
+
     $('clearBet').addEventListener('click', clearBet);
     $('dealBtn').addEventListener('click', startRound);
     $('hitBtn').addEventListener('click', onHit);
@@ -639,12 +907,24 @@
     $('doubleBtn').addEventListener('click', onDouble);
     $('restartBtn').addEventListener('click', restart);
 
+    /* 键盘快捷键 */
+    document.addEventListener('keydown', e => {
+      if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === 'm') { Sound.toggle(); refreshSoundBtn(); return; }
+      if (k === 'h' && !$('hitBtn').disabled)     { e.preventDefault(); onHit(); }
+      else if (k === 's' && !$('standBtn').disabled) { e.preventDefault(); onStand(); }
+      else if (k === 'd' && !$('doubleBtn').disabled){ e.preventDefault(); onDouble(); }
+      else if (k === 'enter' && !$('dealBtn').disabled) { e.preventDefault(); startRound(); }
+    });
+
     /* ==================== 启动 ==================== */
     newShoe();
     updateScores();
     updateStats();
     showPanel('bet');
     refreshButtons();
+    refreshSoundBtn();
   })();
 </script>
 </body>
