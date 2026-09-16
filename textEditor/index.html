@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>纯文本编辑器 · 预览 / 编辑 / 原样导出</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --panel2: #1c2128;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --green: #3fb950;
+      --yellow: #d29922;
+      --red: #f85149;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app {
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---------- 顶部工具栏 ---------- */
+    .toolbar {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: .3px;
+      white-space: nowrap;
+      line-height: 1.25;
+    }
+    .brand small {
+      display: block;
+      font-weight: 400;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0;
+    }
+
+    .spacer { flex: 1 1 auto; }
+
+    .btn {
+      flex: none;
+      padding: 7px 13px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: #21262d;
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background .15s, border-color .15s, opacity .15s;
+      white-space: nowrap;
+    }
+    .btn:hover:not(:disabled) { background: #30363d; border-color: #484f58; }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn:disabled { opacity: .35; cursor: not-allowed; }
+
+    .btn.primary {
+      background: #1f6feb;
+      border-color: #1f6feb;
+      color: #fff;
+      font-weight: 600;
+    }
+    .btn.primary:hover:not(:disabled) { background: #388bfd; border-color: #388bfd; }
+
+    .btn.ghost { background: transparent; }
+
+    /* ---------- 选项条 ---------- */
+    .options-bar {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 7px 14px;
+      background: var(--panel2);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .opt {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .opt select {
+      background: #21262d;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+      max-width: 220px;
+    }
+    .opt select:focus { border-color: var(--accent); }
+    .opt select:disabled { opacity: .4; cursor: not-allowed; }
+
+    .opt-hint {
+      font-size: 11.5px;
+      color: var(--muted);
+      opacity: .85;
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ---------- 编辑区 ---------- */
+    .main {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .editor-wrap {
+      position: absolute;
+      inset: 0;
+    }
+
+    #editor {
+      display: block;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      border: 0;
+      outline: 0;
+      resize: none;
+      padding: 16px 18px 28px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 13.5px;
+      line-height: 1.68;
+      tab-size: 4;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow: auto;
+      caret-color: var(--accent);
+    }
+    #editor::selection { background: #2f4a7a; }
+
+    .empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-align: center;
+      padding: 24px;
+      color: var(--muted);
+      pointer-events: none;
+    }
+    .empty .icon { font-size: 46px; line-height: 1; opacity: .75; }
+    .empty .title { font-size: 15px; color: var(--text); font-weight: 600; }
+    .empty .sub { font-size: 12.5px; line-height: 1.7; }
+
+    /* ---------- 状态栏 ---------- */
+    .statusbar {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 6px 14px;
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .statusbar .grow { flex: 1 1 auto; }
+    .statusbar .sep { opacity: .35; }
+    .statusbar #stFile {
+      max-width: 40vw;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+    }
+    .badge {
+      padding: 1px 7px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: #21262d;
+      font-size: 11.5px;
+    }
+    .badge.utf  { color: #79c0ff; border-color: #1f4b7a; }
+    .badge.ansi { color: #d2a8ff; border-color: #553b7a; }
+    .badge.warn { color: #e3b341; border-color: #7a5f10; }
+
+    #stDirty { color: var(--muted); }
+    #stDirty.is-dirty { color: var(--yellow); font-weight: 600; }
+
+    /* ---------- 拖拽层 ---------- */
+    .drop-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      background: rgba(31, 111, 235, .28);
+      border: 3px dashed rgba(88, 166, 255, .9);
+      border-radius: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .15s ease;
+    }
+    .drop-overlay.show { opacity: 1; }
+
+    /* ---------- Toast ---------- */
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 48px;
+      transform: translate(-50%, 14px);
+      z-index: 60;
+      max-width: 80vw;
+      padding: 10px 18px;
+      border-radius: 10px;
+      background: #21262d;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 13px;
+      box-shadow: 0 8px 26px rgba(0, 0, 0, .55);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease, transform .2s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .toast.ok    { border-color: #2ea043; }
+    .toast.warn  { border-color: #9e6a03; }
+    .toast.error { border-color: #b62324; }
+
+    @media (max-width: 780px) {
+      .brand small { display: none; }
+      .btn { padding: 7px 10px; font-size: 12.5px; }
+      .options-bar { gap: 10px; padding: 6px 10px; }
+      .opt select { max-width: 140px; }
+      .opt-hint { display: none; }
+      .statusbar { gap: 7px; font-size: 11px; }
+      .statusbar #stFile { max-width: 34vw; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ======= 工具栏 ======= -->
+  <header class="toolbar">
+    <div class="brand">
+      纯文本编辑器
+      <small>预览 · 编辑 · 保持原编码导出</small>
+    </div>
+
+    <div class="spacer"></div>
+
+    <button id="btnNew"  class="btn">📄 新建</button>
+    <button id="btnOpen" class="btn">📂 打开</button>
+    <input id="fileInput" type="file" hidden />
+
+    <button id="btnSave"   class="btn primary" disabled title="Ctrl+S">💾 保存</button>
+    <button id="btnSaveAs" class="btn" disabled title="Ctrl+Shift+S：文件名 = 原名 + 月日时分">📑 另存为</button>
+    <button id="btnRevert" class="btn ghost" disabled>↺ 还原</button>
+  </header>
+
+  <!-- ======= 选项条 ======= -->
+  <div class="options-bar">
+    <label class="opt">
+      <span>读取编码</span>
+      <select id="selDecode" disabled></select>
+    </label>
+
+    <label class="opt">
+      <span>换行符</span>
+      <select id="selEol" disabled>
+        <option value="lf">LF (Unix)</option>
+        <option value="crlf">CRLF (Windows)</option>
+      </select>
+    </label>
+
+    <label class="opt">
+      <span>保存编码</span>
+      <select id="selEncode" disabled></select>
+    </label>
+
+    <span class="opt-hint" id="optHint"></span>
+  </div>
+
+  <!-- ======= 主体 ======= -->
+  <main class="main">
+    <div class="empty" id="emptyState">
+      <div class="icon">📄</div>
+      <div class="title">拖入任意文件，或点击「打开」/「新建」</div>
+      <div class="sub">
+        不限制文件类型，一律按纯文本处理<br />
+        自动识别 UTF-8 / UTF-16 / GB18030 等编码，编辑后按原编码写回
+      </div>
+    </div>
+
+    <div class="editor-wrap" id="editorWrap" hidden>
+      <textarea id="editor" spellcheck="false" autocomplete="off"
+                autocorrect="off" autocapitalize="off"></textarea>
+    </div>
+  </main>
+
+  <!-- ======= 状态栏 ======= -->
+  <footer class="statusbar">
+    <span id="stFile">未打开文件</span>
+    <span class="sep">·</span>
+    <span id="stEncoding" class="badge">—</span>
+    <span class="sep">·</span>
+    <span id="stEol">—</span>
+    <span class="sep">·</span>
+    <span id="stSize">—</span>
+    <span class="grow"></span>
+    <span id="stDirty">未修改</span>
+  </footer>
+</div>
+
+<div class="drop-overlay" id="dropOverlay">松开鼠标以打开文件</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  (function () {
+    'use strict';
+
+    /* =========================================================
+     * 元素
+     * ======================================================= */
+    const $ = function (id) { return document.getElementById(id); };
+
+    const editor      = $('editor');
+    const editorWrap  = $('editorWrap');
+    const emptyState  = $('emptyState');
+    const btnNew      = $('btnNew');
+    const btnOpen     = $('btnOpen');
+    const btnSave     = $('btnSave');
+    const btnSaveAs   = $('btnSaveAs');
+    const btnRevert   = $('btnRevert');
+    const fileInput   = $('fileInput');
+    const selDecode   = $('selDecode');
+    const selEncode   = $('selEncode');
+    const selEol      = $('selEol');
+    const optHint     = $('optHint');
+    const stFile      = $('stFile');
+    const stEncoding  = $('stEncoding');
+    const stEol       = $('stEol');
+    const stSize      = $('stSize');
+    const stDirty     = $('stDirty');
+    const dropOverlay = $('dropOverlay');
+    const toastEl     = $('toast');
+
+    /* =========================================================
+     * 编码表
+     * ======================================================= */
+    const ENCODINGS = [
+      { id: 'utf-8',        label: 'UTF-8' },
+      { id: 'utf-8-bom',    label: 'UTF-8 (BOM)' },
+      { id: 'utf-16le',     label: 'UTF-16 LE' },
+      { id: 'utf-16le-bom', label: 'UTF-16 LE (BOM)' },
+      { id: 'utf-16be',     label: 'UTF-16 BE' },
+      { id: 'utf-16be-bom', label: 'UTF-16 BE (BOM)' },
+      { id: 'gb18030',      label: 'GB18030 / GBK' },
+      { id: 'big5',         label: 'Big5（繁体）' },
+      { id: 'shift_jis',    label: 'Shift_JIS（日文）' },
+      { id: 'euc-kr',       label: 'EUC-KR（韩文）' },
+      { id: 'windows-1252', label: 'Windows-1252（西欧）' }
+    ];
+
+    const ENC_LABEL = {};
+    const ENC_BASE = {
+      'utf-8': 'utf-8',           'utf-8-bom': 'utf-8',
+      'utf-16le': 'utf-16le',     'utf-16le-bom': 'utf-16le',
+      'utf-16be': 'utf-16be',     'utf-16be-bom': 'utf-16be',
+      'gb18030': 'gb18030',
+      'big5': 'big5',
+      'shift_jis': 'shift_jis',
+      'euc-kr': 'euc-kr',
+      'windows-1252': 'windows-1252'
+    };
+    ENCODINGS.forEach(function (e) { ENC_LABEL[e.id] = e.label; });
+
+    // 浏览器原生 TextEncoder 只支持 UTF-8；UTF-16 由我们手动编码。
+    // 其他多字节编码（GB18030/Big5/…）无法在纯前端还原，导出时会提示转为 UTF-8。
+    function canEncode(enc) {
+      return enc === 'utf-8' || enc === 'utf-8-bom' ||
+             enc === 'utf-16le' || enc === 'utf-16le-bom' ||
+             enc === 'utf-16be' || enc === 'utf-16be-bom';
+    }
+
+    function encodingLabel(id) { return ENC_LABEL[id] || id; }
+
+    /* =========================================================
+     * 全局状态
+     * ======================================================= */
+    const state = {
+      handle:    null,      // FileSystemFileHandle（可覆盖原文件）
+      fileName:  '',
+      rawBytes:  null,      // 原始字节，切换编码时重新解码
+      encoding:  'utf-8',   // 当前读取编码
+      eol:       '\n',
+      savedText: '',        // 上次保存/加载的 LF 归一化文本
+      loaded:    false,
+      isNew:     false,
+      dirty:     false
+    };
+
+    /* =========================================================
+     * 编解码
+     * ======================================================= */
+
+    /** 用指定编码解码字节（TextDecoder 会自动剥离 BOM） */
+    function decodeWith(bytes, encodingId) {
+      const base = ENC_BASE[encodingId] || 'utf-8';
+      let dec;
+      try {
+        dec = new TextDecoder(base, { fatal: false });
+      } catch (err) {
+        // 浏览器不支持该编码，退回 UTF-8
+        dec = new TextDecoder('utf-8', { fatal: false });
+      }
+      return dec.decode(bytes);
+    }
+
+    /** 用指定编码编码字符串；无法编码时返回 null */
+    function encodeWith(text, encodingId) {
+      const withBom = /-bom$/.test(encodingId);
+      const base = withBom ? encodingId.replace(/-bom$/, '') : encodingId;
+
+      if (base === 'utf-8') {
+        let bytes = new TextEncoder().encode(text);
+        if (withBom) {
+          const out = new Uint8Array(bytes.length + 3);
+          out[0] = 0xEF; out[1] = 0xBB; out[2] = 0xBF;
+          out.set(bytes, 3);
+          return out;
+        }
+        return bytes;
+      }
+
+      if (base === 'utf-16le' || base === 'utf-16be') {
+        const little = (base === 'utf-16le');
+        const head = withBom ? 2 : 0;
+        const out = new Uint8Array(head + text.length * 2);
+        let o = 0;
+        if (withBom) {
+          out[o++] = little ? 0xFF : 0xFE;
+          out[o++] = little ? 0xFE : 0xFF;
+        }
+        for (let i = 0; i < text.length; i++) {
+          const c = text.charCodeAt(i);
+          if (little) { out[o++] = c & 0xFF; out[o++] = (c >> 8) & 0xFF; }
+          else        { out[o++] = (c >> 8) & 0xFF; out[o++] = c & 0xFF; }
+        }
+        return out;
+      }
+
+      return null; // 不支持
+    }
+
+    /* =========================================================
+     * 编码自动探测
+     * ======================================================= */
+    function detectEncoding(bytes) {
+      if (!bytes || bytes.length === 0) return 'utf-8';
+
+      // 1) BOM
+      if (bytes.length >= 3 &&
+          bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) return 'utf-8-bom';
+      if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) return 'utf-16le-bom';
+      if (bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF) return 'utf-16be-bom';
+
+      // 2) 零字节分布 → 可能是无 BOM 的 UTF-16
+      const n = Math.min(bytes.length, 1024);
+      let evenZero = 0, oddZero = 0;
+      for (let i = 0; i < n; i++) {
+        if (bytes[i] === 0) { if (i % 2 === 0) evenZero++; else oddZero++; }
+      }
+      const half = Math.floor(n / 2);
+      if (half >= 4) {
+        if (oddZero  >= half * 0.7 && evenZero < half * 0.1) return 'utf-16le';
+        if (evenZero >= half * 0.7 && oddZero  < half * 0.1) return 'utf-16be';
+      }
+
+      // 3) 严格 UTF-8 校验
+      try {
+        new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        return 'utf-8';
+      } catch (err) { /* 不是合法 UTF-8 */ }
+
+      // 4) 兜底：中文环境最常见的是 GB18030/GBK
+      return 'gb18030';
+    }
+
+    /** 换行符风格探测 */
+    function detectEol(text) {
+      const crlf = (text.match(/\r\n/g) || []).length;
+      const lfAll = (text.match(/\n/g) || []).length;
+      return (crlf > lfAll - crlf) ? '\r\n' : '\n';
+    }
+
+    function toLF(text) { return text.replace(/\r\n?/g, '\n'); }
+
+    /* =========================================================
+     * 文件名工具
+     * ======================================================= */
+    function buildNewName(name) {
+      const d = new Date();
+      const p = function (n) { return String(n).padStart(2, '0'); };
+      const stamp = p(d.getMonth() + 1) + p(d.getDate()) +
+                    p(d.getHours()) + p(d.getMinutes());
+      const dot = name.lastIndexOf('.');
+      if (dot > 0) return name.slice(0, dot) + stamp + name.slice(dot);
+      return name + stamp;
+    }
+
+    /* =========================================================
+     * 下拉框初始化
+     * ======================================================= */
+    function fillEncodingSelect(sel, withSame) {
+      sel.innerHTML = '';
+      if (withSame) {
+        const o = document.createElement('option');
+        o.value = '__same__';
+        o.textContent = '跟随读取编码';
+        sel.appendChild(o);
+      }
+      ENCODINGS.forEach(function (e) {
+        const o = document.createElement('option');
+        o.value = e.id;
+        o.textContent = e.label;
+        if (!canEncode(e.id)) o.title = '导出时会提示转为 UTF-8';
+        sel.appendChild(o);
+      });
+    }
+
+    /* =========================================================
+     * 打开 / 加载 / 新建
+     * ======================================================= */
+
+    async function openFile() {
+      if (typeof window.showOpenFilePicker === 'function') {
+        try {
+          const handles = await window.showOpenFilePicker({
+            multiple: false
+            // 不设置 types → 允许所有文件类型
+          });
+          const handle = handles[0];
+          const file = await handle.getFile();
+          await loadFile(file, handle);
+          return;
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+          console.warn('showOpenFilePicker 失败，回退：', err);
+        }
+      }
+      fileInput.click();
+    }
+
+    fileInput.addEventListener('change', async function () {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      await loadFile(file, null);
+      fileInput.value = '';
+    });
+
+    async function loadFile(file, handle) {
+      try {
+        const buffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+
+        if (bytes.length > 20 * 1024 * 1024) {
+          toast('文件较大（' + (bytes.length / 1048576).toFixed(1) + ' MB），编辑可能卡顿', 'warn');
+        }
+
+        const enc = detectEncoding(bytes);
+        const text = decodeWith(bytes, enc);
+        const normalized = toLF(text);
+
+        // 统计替换字符，判断是否解码出错
+        const badCount = (normalized.match(/\uFFFD/g) || []).length;
+        const maybeBinary = normalized.length > 200 && badCount > normalized.length * 0.05;
+
+        state.handle    = handle || null;
+        state.fileName  = file.name;
+        state.rawBytes  = bytes;
+        state.encoding  = enc;
+        state.eol       = detectEol(text);
+        state.savedText = normalized;
+        state.loaded    = true;
+        state.isNew     = false;
+
+        editor.value = normalized;
+        editor.scrollTop = 0;
+        editor.scrollLeft = 0;
+
+        emptyState.hidden = true;
+        editorWrap.hidden = false;
+        document.title = file.name + ' · 纯文本编辑器';
+
+        setDirty(false);
+        updateOptionsUI();
+        updateStatus();
+
+        if (maybeBinary) {
+          toast('警告：文件疑似二进制或编码识别有误，可手动切换「读取编码」', 'warn');
+        } else {
+          toast('已加载：' + file.name, 'ok');
+        }
+
+        editor.focus();
+      } catch (err) {
+        console.error(err);
+        toast('读取失败：' + (err && err.message ? err.message : err), 'error');
+      }
+    }
+
+    function newFile() {
+      state.handle    = null;
+      state.fileName  = '未命名.txt';
+      state.rawBytes  = null;
+      state.encoding  = 'utf-8';
+      state.eol       = '\n';
+      state.savedText = '';
+      state.loaded    = true;
+      state.isNew     = true;
+
+      editor.value = '';
+      editor.scrollTop = 0;
+
+      emptyState.hidden = true;
+      editorWrap.hidden = false;
+      document.title = '未命名.txt · 纯文本编辑器';
+
+      setDirty(false);
+      updateOptionsUI();
+      updateStatus();
+      editor.focus();
+      toast('已新建空白文件（导出为 .txt）', 'ok');
+    }
+
+    /* =========================================================
+     * 导出
+     * ======================================================= */
+
+    function buildExportText() {
+      let t = toLF(editor.value);
+      if (state.eol === '\r\n') t = t.replace(/\n/g, '\r\n');
+      return t;
+    }
+
+    function getExportEncoding() {
+      const v = selEncode.value;
+      if (!v || v === '__same__') return state.encoding;
+      return v;
+    }
+
+    /** 返回实际可用的导出编码；必要时提示用户 */
+    function resolveExportEncoding() {
+      let enc = getExportEncoding();
+
+      if (!canEncode(enc)) {
+        const ok = window.confirm(
+          '保存编码为「' + encodingLabel(enc) + '」，\n' +
+          '浏览器无法直接写出该编码。\n\n' +
+          '是否改用 UTF-8 保存？\n' +
+          '· 文件内容不会乱码\n' +
+          '· 但文件编码会变为 UTF-8\n\n' +
+          '（如不想转换，请先在「保存编码」中选择 UTF-8 / UTF-16）'
+        );
+        if (!ok) return null;
+        enc = 'utf-8';
+        selEncode.value = 'utf-8';
+      }
+      return enc;
+    }
+
+    async function ensurePermission(handle, mode) {
+      if (typeof handle.queryPermission !== 'function') return true;
+      const opts = { mode: mode };
+      try {
+        if (await handle.queryPermission(opts) === 'granted') return true;
+        if (await handle.requestPermission(opts) === 'granted') return true;
+      } catch (err) { console.warn('权限检查失败：', err); }
+      return false;
+    }
+
+    async function writeToHandle(handle, bytes) {
+      const w = await handle.createWritable();
+      try { await w.write(bytes); } finally { await w.close(); }
+    }
+
+    function downloadBytes(bytes, filename) {
+      const blob = new Blob([bytes], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+    }
+
+    /** 覆盖保存（原文件） */
+    async function saveOverwrite() {
+      if (!state.loaded) return;
+
+      const enc = resolveExportEncoding();
+      if (!enc) return;
+
+      const bytes = encodeWith(buildExportText(), enc);
+      if (!bytes) { toast('无法以该编码保存', 'error'); return; }
+
+      if (state.handle) {
+        try {
+          const ok = await ensurePermission(state.handle, 'readwrite');
+          if (!ok) {
+            toast('未获得写入权限，已改为下载副本', 'warn');
+            downloadBytes(bytes, state.fileName);
+          } else {
+            await writeToHandle(state.handle, bytes);
+            toast('已保存：' + state.fileName, 'ok');
+          }
+        } catch (err) {
+          console.error(err);
+          toast('保存失败：' + (err && err.message ? err.message : err), 'error');
+          return;
+        }
+      } else {
+        downloadBytes(bytes, state.fileName);
+        toast('已下载：' + state.fileName, 'ok');
+      }
+
+      // 状态同步
+      state.encoding = enc;
+      state.savedText = editor.value;
+      state.rawBytes = bytes;
+      state.isNew = false;
+      setDirty(false);
+      updateOptionsUI();
+      updateStatus();
+    }
+
+    /** 另存为新文件：原名 + 月日时分 */
+    async function saveAsCopy() {
+      if (!state.loaded) return;
+
+      const enc = resolveExportEncoding();
+      if (!enc) return;
+
+      const bytes = encodeWith(buildExportText(), enc);
+      if (!bytes) { toast('无法以该编码保存', 'error'); return; }
+
+      const newName = buildNewName(state.fileName);
+
+      if (typeof window.showSaveFilePicker === 'function') {
+        try {
+          const handle = await window.showSaveFilePicker({ suggestedName: newName });
+          await writeToHandle(handle, bytes);
+          toast('已另存为：' + handle.name, 'ok');
+          return;
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+          console.warn('showSaveFilePicker 失败，回退下载：', err);
+        }
+      }
+
+      downloadBytes(bytes, newName);
+      toast('已下载新文件：' + newName, 'ok');
+    }
+
+    /* =========================================================
+     * UI 状态
+     * ======================================================= */
+
+    function updateOptionsUI() {
+      const on = state.loaded;
+
+      selEol.disabled = !on;
+      selEncode.disabled = !on;
+
+      if (!on) {
+        selDecode.disabled = true;
+        return;
+      }
+
+      selDecode.disabled = state.isNew;   // 新建文件没有原始字节
+      if (!state.isNew) {
+        if (selDecode.querySelector('option[value="' + state.encoding + '"]')) {
+          selDecode.value = state.encoding;
+        }
+      }
+      selEol.value = (state.eol === '\r\n') ? 'crlf' : 'lf';
+
+      if (selEncode.value !== '__same__' &&
+          !selEncode.querySelector('option[value="' + selEncode.value + '"]')) {
+        selEncode.value = '__same__';
+      }
+    }
+
+    function updateStatus() {
+      if (!state.loaded) {
+        stFile.textContent = '未打开文件';
+        stEncoding.className = 'badge';
+        stEncoding.textContent = '—';
+        stEol.textContent = '—';
+        stSize.textContent = '—';
+        btnSave.disabled = true;
+        btnSaveAs.disabled = true;
+        btnRevert.disabled = true;
+        optHint.textContent = '';
+        return;
+      }
+
+      stFile.textContent = state.fileName + (state.isNew ? '（新建）' : (state.handle ? '' : '（只读模式）'));
+
+      // 编码徽章
+      let cls, label;
+      if (state.encoding === 'utf-8' || state.encoding === 'utf-8-bom') {
+        cls = 'utf';
+        label = state.encoding === 'utf-8-bom' ? 'UTF-8 BOM' : 'UTF-8';
+      } else if (state.encoding === 'utf-16le' || state.encoding === 'utf-16le-bom' ||
+                 state.encoding === 'utf-16be' || state.encoding === 'utf-16be-bom') {
+        cls = 'utf';
+        label = state.encoding.toUpperCase().replace('-', ' ');
+      } else {
+        cls = 'ansi';
+        label = encodingLabel(state.encoding);
+      }
+      stEncoding.className = 'badge ' + cls;
+      stEncoding.textContent = label;
+
+      stEol.textContent = '换行 ' + (state.eol === '\r\n' ? 'CRLF' : 'LF');
+      stSize.textContent = editor.value.length + ' 字符';
+
+      btnSave.disabled = false;
+      btnSaveAs.disabled = false;
+      btnRevert.disabled = !state.dirty;
+
+      // 提示文字
+      const exEnc = getExportEncoding();
+      if (canEncode(exEnc)) {
+        optHint.textContent = '导出将以 ' + encodingLabel(exEnc) + ' 写出';
+      } else {
+        optHint.textContent = '⚠ ' + encodingLabel(exEnc) + ' 无法直接写出，导出前会询问是否转 UTF-8';
+      }
+    }
+
+    function setDirty(isDirty) {
+      state.dirty = isDirty;
+      stDirty.textContent = isDirty ? '● 已修改' : '未修改';
+      stDirty.classList.toggle('is-dirty', isDirty);
+      if (state.loaded) btnRevert.disabled = !isDirty;
+    }
+
+    let toastTimer = null;
+    function toast(msg, type) {
+      toastEl.textContent = msg;
+      toastEl.className = 'toast show' + (type ? ' ' + type : '');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { toastEl.className = 'toast'; }, 3000);
+    }
+
+    /* =========================================================
+     * 事件绑定
+     * ======================================================= */
+
+    btnNew.addEventListener('click', function () {
+      if (state.dirty && !confirm('当前有未保存的修改，确定新建空白文件？')) return;
+      newFile();
+    });
+
+    btnOpen.addEventListener('click', function () {
+      if (state.dirty && !confirm('当前有未保存的修改，确定打开其他文件？')) return;
+      openFile();
+    });
+
+    btnSave.addEventListener('click', saveOverwrite);
+    btnSaveAs.addEventListener('click', saveAsCopy);
+
+    btnRevert.addEventListener('click', function () {
+      if (!state.loaded) return;
+      if (state.dirty && !confirm('确定放弃未保存的修改，还原到上次保存的内容？')) return;
+      editor.value = state.savedText;
+      setDirty(false);
+      updateStatus();
+      toast('已还原', 'ok');
+    });
+
+    // 编辑监听
+    editor.addEventListener('input', function () {
+      setDirty(editor.value !== state.savedText);
+      stSize.textContent = editor.value.length + ' 字符';
+    });
+
+    // Tab 缩进
+    editor.addEventListener('keydown', function (e) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = editor.selectionStart, t = editor.selectionEnd;
+        editor.value = editor.value.slice(0, s) + '\t' + editor.value.slice(t);
+        editor.selectionStart = editor.selectionEnd = s + 1;
+        setDirty(editor.value !== state.savedText);
+        stSize.textContent = editor.value.length + ' 字符';
+      }
+    });
+
+    // 读取编码切换 → 重新解码原始字节
+    selDecode.addEventListener('change', function () {
+      if (!state.loaded || state.isNew || !state.rawBytes) return;
+
+      const newEnc = selDecode.value;
+      if (state.dirty &&
+          !confirm('切换读取编码会重新解释原始字节，未保存的修改将丢失。\n是否继续？')) {
+        selDecode.value = state.encoding;
+        return;
+      }
+
+      const text = decodeWith(state.rawBytes, newEnc);
+      const normalized = toLF(text);
+
+      state.encoding = newEnc;
+      state.eol = detectEol(text);
+      state.savedText = normalized;
+
+      editor.value = normalized;
+      setDirty(false);
+      updateOptionsUI();
+      updateStatus();
+
+      const bad = (normalized.match(/\uFFFD/g) || []).length;
+      if (bad > 0) toast('该编码下有 ' + bad + ' 个字符无法解码', 'warn');
+      else toast('已按 ' + encodingLabel(newEnc) + ' 重新读取', 'ok');
+    });
+
+    // 换行符切换
+    selEol.addEventListener('change', function () {
+      const newEol = (selEol.value === 'crlf') ? '\r\n' : '\n';
+      if (state.eol === newEol) return;
+      state.eol = newEol;
+      setDirty(true);
+      updateStatus();
+    });
+
+    // 保存编码切换
+    selEncode.addEventListener('change', updateStatus);
+
+    // 快捷键
+    document.addEventListener('keydown', function (e) {
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod) return;
+      const k = e.key.toLowerCase();
+      if (k === 's') {
+        e.preventDefault();
+        if (e.shiftKey) saveAsCopy();
+        else saveOverwrite();
+      } else if (k === 'o') {
+        e.preventDefault();
+        if (state.dirty && !confirm('当前有未保存的修改，确定打开其他文件？')) return;
+        openFile();
+      } else if (k === 'n') {
+        e.preventDefault();
+        if (state.dirty && !confirm('当前有未保存的修改，确定新建空白文件？')) return;
+        newFile();
+      }
+    });
+
+    // 关闭前提醒
+    window.addEventListener('beforeunload', function (e) {
+      if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
+    });
+
+    /* ---------- 拖拽打开 ---------- */
+    let dragDepth = 0;
+
+    window.addEventListener('dragenter', function (e) {
+      e.preventDefault();
+      dragDepth++;
+      dropOverlay.classList.add('show');
+    });
+
+    window.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    });
+
+    window.addEventListener('dragleave', function (e) {
+      e.preventDefault();
+      dragDepth--;
+      if (dragDepth <= 0) { dragDepth = 0; dropOverlay.classList.remove('show'); }
+    });
+
+    window.addEventListener('drop', async function (e) {
+      e.preventDefault();
+      dragDepth = 0;
+      dropOverlay.classList.remove('show');
+
+      if (state.dirty && !confirm('当前有未保存的修改，确定打开新文件？')) return;
+
+      const dt = e.dataTransfer;
+      if (!dt) return;
+
+      if (dt.items && dt.items.length) {
+        const item = dt.items[0];
+        if (item.kind === 'file' && typeof item.getAsFileSystemHandle === 'function') {
+          try {
+            const handle = await item.getAsFileSystemHandle();
+            if (handle && handle.kind === 'file') {
+              const file = await handle.getFile();
+              await loadFile(file, handle);
+              return;
+            }
+          } catch (err) { console.warn('getAsFileSystemHandle 失败：', err); }
+        }
+      }
+
+      const file = dt.files && dt.files[0];
+      if (file) await loadFile(file, null);
+    });
+
+    /* =========================================================
+     * 初始化
+     * ======================================================= */
+    fillEncodingSelect(selDecode, false);
+    fillEncodingSelect(selEncode, true);
+    selDecode.value = 'utf-8';
+    selEncode.value = '__same__';
+
+    updateOptionsUI();
+    updateStatus();
+  })();
+</script>
+</body>
+</html>
