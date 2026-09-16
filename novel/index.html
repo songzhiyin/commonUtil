@@ -234,29 +234,14 @@
     }
     .mode-btn.active{background:var(--seg-active);color:var(--accent);font-weight:600;box-shadow:0 1px 2px var(--shadow-strong);}
 
-    /* ============ 主题切换 ============ */
-    .theme-wrap{position:relative;flex:none;}
+    /* ============ 主题切换（点击即在日间/暗黑之间切换） ============ */
     .theme-ico{display:none;align-items:center;justify-content:center;}
     :root[data-theme-pref="light"] .ico-light,
     :root[data-theme-pref="dark"]  .ico-dark {display:flex;}
 
-    .theme-menu{
-      position:absolute;top:calc(100% + 6px);right:0;
-      background:var(--panel);border:1px solid var(--border);border-radius:10px;
-      padding:5px;min-width:130px;z-index:60;display:none;
-      box-shadow:0 8px 26px var(--shadow-lg);
-    }
-    .theme-menu.open{display:block;}
-    .theme-opt{
-      display:flex;align-items:center;justify-content:space-between;gap:14px;
-      width:100%;padding:8px 11px;border:none;background:transparent;border-radius:7px;
-      font-size:13px;color:var(--text);cursor:pointer;font-family:inherit;
-      text-align:left;transition:.12s;white-space:nowrap;
-    }
-    .theme-opt:hover{background:var(--panel-hover);}
-    .theme-opt.active{color:var(--accent);font-weight:600;background:var(--accent-soft);}
-    .theme-opt .tm-check{color:var(--accent);font-weight:700;opacity:0;font-size:12px;}
-    .theme-opt.active .tm-check{opacity:1;}
+    #themeBtn{flex:none;}
+    #themeBtn svg{transition:transform .3s ease;}
+    #themeBtn:active svg{transform:rotate(20deg) scale(.92);}
 
     /* ============ 阅读区 ============ */
     #readerWrap{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;}
@@ -466,7 +451,6 @@
       #chapterLabel{font-size:12px;}
       .mode-btn{padding:0 10px;font-size:12px;}
       .btn.icon{width:30px;}
-      .theme-menu{min-width:118px;}
     }
   </style>
 </head>
@@ -512,28 +496,22 @@
         <button class="btn sm" id="nextBtn" disabled>下一章</button>
       </div>
 
-      <!-- 主题切换（仅日间/暗黑两种，默认日间） -->
-      <div class="theme-wrap">
-        <button class="btn icon" id="themeBtn" title="主题：日间模式" aria-haspopup="menu" aria-expanded="false">
-          <span class="theme-ico ico-light">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
-                 stroke-width="1.8" stroke-linecap="round">
-              <circle cx="12" cy="12" r="4"/>
-              <path d="M12 2.6v2.2M12 19.2v2.2M4.4 4.4l1.6 1.6M18 18l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.4 19.6L6 18M18 6l1.6-1.6"/>
-            </svg>
-          </span>
-          <span class="theme-ico ico-dark">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
-                 stroke-width="1.8" stroke-linejoin="round">
-              <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
-            </svg>
-          </span>
-        </button>
-        <div class="theme-menu" id="themeMenu" role="menu">
-          <button class="theme-opt" data-theme-pref="light" role="menuitem">日间模式<span class="tm-check">✓</span></button>
-          <button class="theme-opt" data-theme-pref="dark" role="menuitem">暗黑模式<span class="tm-check">✓</span></button>
-        </div>
-      </div>
+      <!-- 主题切换：点击即在「日间 / 暗黑」之间切换 -->
+      <button class="btn icon" id="themeBtn" title="切换主题" aria-label="切换主题">
+        <span class="theme-ico ico-light">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2.6v2.2M12 19.2v2.2M4.4 4.4l1.6 1.6M18 18l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.4 19.6L6 18M18 6l1.6-1.6"/>
+          </svg>
+        </span>
+        <span class="theme-ico ico-dark">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linejoin="round">
+            <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
+          </svg>
+        </span>
+      </button>
     </header>
 
     <!-- ---------- 阅读视图 ---------- -->
@@ -712,7 +690,6 @@
       loadingText:    $('#loadingText'),
       resultCount:    $('#resultCount'),
       themeBtn:       $('#themeBtn'),
-      themeMenu:      $('#themeMenu'),
       splitWrap:      $('#splitWrap'),
       encoding:       $('#encoding'),
       splitFileInfo:  $('#splitFileInfo'),
@@ -772,7 +749,9 @@
     function clearError() { els.errorBox.style.display = 'none'; }
 
     /* ============================================================
-     *  0.5 主题系统（仅日间 / 暗黑，默认日间，不跟随系统）
+     *  0.5 主题系统
+     *  —— 仅「日间 / 暗黑」两种，默认日间，不跟随系统
+     *  —— 点击右上角按钮即在两者之间切换
      * ============================================================ */
     const THEME_KEY = 'txtreader-theme-pref';
 
@@ -793,13 +772,10 @@
       root.setAttribute('data-theme', themePref);
       root.setAttribute('data-theme-pref', themePref);
 
-      $$('.theme-opt').forEach(b => {
-        b.classList.toggle('active', b.dataset.themePref === themePref);
-      });
-
       const label = themePref === 'light' ? '日间模式' : '暗黑模式';
-      els.themeBtn.title = '主题：' + label;
-      els.themeBtn.setAttribute('aria-label', '切换主题（当前：' + label + '）');
+      const next  = themePref === 'light' ? '暗黑模式' : '日间模式';
+      els.themeBtn.title = '当前：' + label + '（点击切换到' + next + '）';
+      els.themeBtn.setAttribute('aria-label', '切换到' + next);
 
       updateThemeColorMeta(themePref);
     }
@@ -811,38 +787,9 @@
       applyTheme();
     }
 
-    function openThemeMenu() {
-      els.themeMenu.classList.add('open');
-      els.themeBtn.setAttribute('aria-expanded', 'true');
-    }
-    function closeThemeMenu() {
-      els.themeMenu.classList.remove('open');
-      els.themeBtn.setAttribute('aria-expanded', 'false');
-    }
-
-    els.themeBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      els.themeMenu.classList.contains('open') ? closeThemeMenu() : openThemeMenu();
-    });
-
-    $$('.theme-opt').forEach(btn => {
-      btn.addEventListener('click', () => {
-        setThemePref(btn.dataset.themePref);
-        closeThemeMenu();
-      });
-    });
-
-    document.addEventListener('click', e => {
-      if (!els.themeMenu.classList.contains('open')) return;
-      if (e.target.closest('.theme-wrap')) return;
-      closeThemeMenu();
-    });
-
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && els.themeMenu.classList.contains('open')) {
-        closeThemeMenu();
-        els.themeBtn.focus();
-      }
+    /* 点击 = 直接切换（不再有下拉菜单） */
+    els.themeBtn.addEventListener('click', () => {
+      setThemePref(themePref === 'light' ? 'dark' : 'light');
     });
 
     applyTheme();
