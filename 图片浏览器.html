@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>图片浏览器 · 滑动切换</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; height: 100%;
+      background: #050505; color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      overflow: hidden;
+    }
+
+    /* ============ 滚动容器 ============ */
+    .viewer {
+      position: fixed; inset: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.28) transparent;
+    }
+    .viewer::-webkit-scrollbar { width: 8px; }
+    .viewer::-webkit-scrollbar-track { background: transparent; }
+    .viewer::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,.25); border-radius: 8px;
+    }
+    .viewer::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.45); }
+
+    /* ============ 单张图片区 ============ */
+    .slide {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    /*
+      清晰度优先：
+        - max-width:100% + width:auto → 大图缩放到容器宽度，小图保持原始尺寸
+        - height:auto + max-height:none → 始终等比，不裁剪、不拉伸
+        - object-fit 不使用，避免任何形式的“填充式”变形
+        - 不用 image-rendering: pixelated 之类的强制放大，浏览器按默认高质量缩放
+    */
+    .slide img {
+      display: block;
+      max-width: 100%;
+      width: auto;
+      height: auto;
+      max-height: none;
+      object-fit: contain;
+      user-select: none;
+      -webkit-user-drag: none;
+      background: transparent;
+    }
+    .img-err {
+      padding: 22px 26px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      color: #ff8b8b;
+      font-size: 14px;
+      max-width: 88vw;
+      word-break: break-all;
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    /* ============ 文件夹分组标题 ============ */
+    .group-head {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 30px 22px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      color: #8fd3ff;
+      background: linear-gradient(180deg, rgba(30,120,190,.22), rgba(0,0,0,0));
+      border-top: 1px solid rgba(255,255,255,.06);
+    }
+    .group-head:first-child { border-top: none; }
+    .group-head .gicon { font-size: 15px; filter: saturate(1.1); }
+    .group-head .gname {
+      flex: 1; min-width: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      text-shadow: 0 1px 4px rgba(0,0,0,.7);
+    }
+    .group-head .gcount {
+      flex: 0 0 auto;
+      font-size: 11px; font-weight: 600;
+      color: #8b98a3;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.08);
+      padding: 3px 10px; border-radius: 999px;
+      letter-spacing: 0;
+    }
+
+    /* ============ 底部加载提示 ============ */
+    .loading-tip {
+      padding: 34px 20px calc(56px + env(safe-area-inset-bottom));
+      text-align: center;
+      font-size: 13px;
+      letter-spacing: 1px;
+      color: #6d7a85;
+    }
+    .loading-tip .spin {
+      display: inline-block;
+      width: 13px; height: 13px;
+      margin-right: 8px;
+      vertical-align: -2px;
+      border: 2px solid rgba(255,255,255,.18);
+      border-top-color: #4dabf7;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ============ 顶栏 ============ */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px;
+      padding-top: calc(12px + env(safe-area-inset-top));
+      background: linear-gradient(180deg, rgba(0,0,0,.82) 0%, rgba(0,0,0,.45) 60%, rgba(0,0,0,0) 100%);
+      transition: opacity .45s ease, transform .45s ease;
+    }
+    .topbar.hide {
+      opacity: 0; transform: translateY(-100%); pointer-events: none;
+    }
+    .tbtn {
+      flex: 0 0 auto;
+      padding: 8px 16px; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(255,255,255,.12);
+      color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: background .2s, transform .1s;
+    }
+    .tbtn:hover { background: rgba(255,255,255,.22); }
+    .tbtn:active { transform: scale(.95); }
+    .fname {
+      flex: 1; min-width: 0;
+      font-size: 13px; color: #d8d8d8;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      text-shadow: 0 1px 4px rgba(0,0,0,.8);
+    }
+
+    /* ============ 右下角页码 ============ */
+    .hud {
+      position: fixed; z-index: 25;
+      right: 16px; bottom: calc(18px + env(safe-area-inset-bottom));
+      padding: 6px 14px; border-radius: 999px;
+      background: rgba(0,0,0,.55);
+      border: 1px solid rgba(255,255,255,.14);
+      backdrop-filter: blur(10px);
+      font-size: 13px; font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: .5px;
+      color: #fff;
+      opacity: 0; transition: opacity .4s;
+      pointer-events: none;
+    }
+    .hud.show { opacity: 1; }
+
+    /* ============ 底部进度条 ============ */
+    .pbar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
+      height: 3px; background: rgba(255,255,255,.09);
+    }
+    .pbar i {
+      display: block; height: 100%; width: 0%;
+      background: linear-gradient(90deg, #4dabf7, #63e6be);
+      border-radius: 0 3px 3px 0;
+      transition: width .12s linear;
+    }
+
+    /* ============ 欢迎页 ============ */
+    .welcome {
+      position: fixed; inset: 0; z-index: 40;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 6px; padding: 26px; text-align: center;
+      background: radial-gradient(ellipse at 50% 35%, #1a1a1f 0%, #0a0a0c 60%, #000 100%);
+      transition: opacity .35s ease, visibility .35s;
+      overflow-y: auto;
+    }
+    .welcome.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+    .wicon {
+      font-size: 54px; margin-bottom: 6px;
+      filter: drop-shadow(0 6px 18px rgba(77,171,247,.35));
+    }
+    .welcome h1 {
+      margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 1px;
+    }
+    .welcome p {
+      margin: 4px 0 0; font-size: 13px; color: #8b8b95; line-height: 1.7;
+    }
+    .wbtns {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      justify-content: center; margin-top: 22px;
+    }
+    .btn {
+      padding: 12px 22px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.08);
+      color: #fff; font-size: 14px; font-weight: 700;
+      cursor: pointer;
+      transition: background .2s, transform .1s, border-color .2s;
+    }
+    .btn:hover { background: rgba(255,255,255,.16); }
+    .btn:active { transform: scale(.96); }
+    .btn.primary {
+      background: linear-gradient(180deg, #3b9eff, #1a73e8);
+      border-color: #6bb6ff;
+      box-shadow: 0 8px 24px rgba(26,115,232,.4);
+    }
+    .btn.primary:hover { background: linear-gradient(180deg, #57aeff, #2b82f0); }
+    .btn.ghost { background: transparent; color: #b9b9c2; }
+
+    .hint {
+      margin-top: 26px !important;
+      font-size: 12px !important; color: #5f5f6a !important;
+      letter-spacing: .5px;
+    }
+
+    /* ============ 拖拽提示 ============ */
+    .dropmask {
+      position: fixed; inset: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(10, 60, 120, .55);
+      backdrop-filter: blur(6px);
+      border: 3px dashed rgba(255,255,255,.55);
+      font-size: 20px; font-weight: 800; letter-spacing: 2px;
+      color: #fff;
+      opacity: 0; visibility: hidden;
+      transition: opacity .18s, visibility .18s;
+      pointer-events: none;
+    }
+    .dropmask.on { opacity: 1; visibility: visible; }
+
+    @media (max-width: 600px) {
+      .welcome h1 { font-size: 19px; }
+      .btn { padding: 11px 18px; font-size: 13px; }
+      .tbtn { padding: 7px 13px; font-size: 12px; }
+      .group-head { padding: 24px 16px 12px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 滚动浏览区 -->
+<div class="viewer" id="viewer"></div>
+
+<!-- 顶栏 -->
+<div class="topbar hide" id="topbar">
+  <button class="tbtn" id="pickFolderTop">选择文件夹</button>
+  <span class="fname" id="fname"></span>
+</div>
+
+<!-- 页码 -->
+<div class="hud" id="hud"><span id="counter">0 / 0</span></div>
+
+<!-- 进度条 -->
+<div class="pbar"><i id="pbar"></i></div>
+
+<!-- 欢迎页 -->
+<div class="welcome" id="welcome">
+  <div class="wicon">🖼️</div>
+  <h1>图片浏览器</h1>
+  <p>大图满屏 · 小图原尺寸 · 清晰度优先</p>
+  <p style="font-size:12px;color:#6f7b85;margin-top:8px">
+    文件名有规律（如 name1、name2 或 1、2、3）自动按名排序<br>
+    无规律则保持文件夹原始顺序 · 子文件夹依次排在后面
+  </p>
+  <div class="wbtns">
+    <button class="btn primary" id="pickFolderBtn">选择文件夹</button>
+    <button class="btn" id="pickFilesBtn">选择图片</button>
+    <button class="btn ghost" id="demoBtn">载入示例</button>
+  </div>
+  <p class="hint">↑ ↓ / PageUp PageDown / 滚轮 / 手指滑动 浏览<br>松手后自动对齐到整张图片</p>
+</div>
+
+<!-- 拖拽提示 -->
+<div class="dropmask" id="dropmask">松开以载入图片</div>
+
+<!-- 隐藏的 input -->
+<input type="file" id="folderInput" webkitdirectory directory multiple style="display:none">
+<input type="file" id="fileInput" accept="image/*" multiple style="display:none">
+
+<script>
+  (function () {
+    'use strict';
+
+    /* ==================== DOM ==================== */
+    const viewer      = document.getElementById('viewer');
+    const welcome     = document.getElementById('welcome');
+    const topbar      = document.getElementById('topbar');
+    const fnameEl     = document.getElementById('fname');
+    const hudEl       = document.getElementById('hud');
+    const counterEl   = document.getElementById('counter');
+    const pbarEl      = document.getElementById('pbar');
+    const dropmask    = document.getElementById('dropmask');
+    const folderInput = document.getElementById('folderInput');
+    const fileInput   = document.getElementById('fileInput');
+
+    /* ==================== 状态 ==================== */
+    let groups        = [];     // [{ path, files:[{name, source}] }]
+    let loadedGroups  = 0;
+    let loadingGroup  = false;
+    let slides        = [];     // 已渲染的 slide DOM
+    let objectUrls    = [];     // 需要释放的 blob url
+    let totalImages   = 0;
+    let currentIndex  = 0;
+    let scrollTimer   = null;
+    let topbarTimer   = null;
+    let ticking       = false;
+
+    const loadingTip = document.createElement('div');
+    loadingTip.className = 'loading-tip';
+    loadingTip.hidden = true;
+
+    /* ==================== 工具函数 ==================== */
+    const IMG_RE = /\.(jpe?g|png|gif|webp|bmp|avif|svg|jfif|ico)$/i;
+    function isImageFile(f) {
+      if (!f) return false;
+      if (f.type && f.type.indexOf('image/') === 0) return true;
+      return IMG_RE.test(f.name || '');
+    }
+    function naturalCompare(a, b) {
+      return String(a).localeCompare(String(b), 'zh-Hans-CN', {
+        numeric: true, sensitivity: 'base'
+      });
+    }
+    function scrollToY(y, smooth) {
+      if (smooth && 'scrollBehavior' in document.documentElement.style) {
+        viewer.scrollTo({ top: y, behavior: 'smooth' });
+      } else {
+        viewer.scrollTop = y;
+      }
+    }
+
+    /* ==================== 智能文件名排序 ==================== */
+    /**
+     * 判断同一文件夹下的文件名是否有规律：
+     *   - 每个文件名都以数字结尾
+     *   - 去掉末尾数字后，前缀完全一致
+     *   - 数字不重复
+     * 满足则按数字升序排序；否则保持原始顺序（文件夹原始顺序）。
+     *
+     * 例：
+     *   ["1.jpg","2.jpg","10.jpg"]               → 排序后 1,2,10
+     *   ["IMG_001.jpg","IMG_002.jpg"]           → 排序后 1,2
+     *   ["name1.png","name2.png","name11.png"]  → 排序后 1,2,11
+     *   ["a1.jpg","b2.jpg"]                     → 前缀不同，保持原顺序
+     *   ["photo.jpg","cat.jpg"]                 → 无数字，保持原顺序
+     *   ["ade48c...bbf.jpeg","x9y.jpeg"]        → 数字不在末尾，保持原顺序
+     */
+    function smartSortFiles(files) {
+      if (!files || files.length <= 1) return (files || []).slice();
+
+      const parsed = files.map(function (f) {
+        const base = String(f.name || '').replace(/\.[^.]+$/, '');
+        const m = base.match(/^(.*?)(\d+)$/);
+        return m
+          ? { file: f, prefix: m[1], num: parseInt(m[2], 10), ok: true }
+          : { file: f, prefix: null, num: null, ok: false };
+      });
+
+      // 必须全部以数字结尾
+      if (!parsed.every(function (p) { return p.ok; })) return files.slice();
+
+      // 前缀必须完全一致（含空字符串）
+      const prefix = parsed[0].prefix;
+      if (!parsed.every(function (p) { return p.prefix === prefix; })) return files.slice();
+
+      // 数字不能重复
+      const seen = Object.create(null);
+      for (let i = 0; i < parsed.length; i++) {
+        const n = parsed[i].num;
+        if (seen[n]) return files.slice();
+        seen[n] = true;
+      }
+
+      // 有规律：按数字升序
+      parsed.sort(function (a, b) { return a.num - b.num; });
+      return parsed.map(function (p) { return p.file; });
+    }
+
+    /* ==================== URL 管理 ==================== */
+    function releaseUrls() {
+      for (let i = 0; i < objectUrls.length; i++) {
+        try { URL.revokeObjectURL(objectUrls[i]); } catch (e) {}
+      }
+      objectUrls = [];
+    }
+    function resolveUrl(src) {
+      if (typeof src === 'string') return src;   // dataURL，无需释放
+      const u = URL.createObjectURL(src);
+      objectUrls.push(u);
+      return u;
+    }
+
+    /* ==================== 清空 ==================== */
+    function resetAll() {
+      clearTimeout(scrollTimer);
+      viewer.innerHTML = '';
+      slides = [];
+      groups = [];
+      loadedGroups = 0;
+      loadingGroup = false;
+      currentIndex = 0;
+      totalImages = 0;
+      releaseUrls();
+
+      loadingTip.hidden = true;
+      loadingTip.innerHTML = '';
+      viewer.appendChild(loadingTip);
+    }
+
+    /* ==================== 构建分组树 ==================== */
+    /**
+     * entries: [{ source: File|string, relPath: 'root/sub/a.jpg' }]
+     * 返回按顺序排列的分组：当前文件夹 → 子文件夹（自然序）→ 孙文件夹 …
+     * 每组：{ path: 'sub', files: [{ name, source }] }
+     */
+    function buildGroups(entries) {
+      const root = { dirs: new Map(), files: [] };
+
+      entries.forEach(function (e) {
+        let segs = String(e.relPath || '').split('/').filter(Boolean);
+        // 剥掉最外层文件夹名（webkitdirectory 与拖拽文件夹都会带这一层）
+        if (segs.length > 1) segs.shift();
+        const fname = segs.pop() || (e.source && e.source.name) || 'image';
+        let node = root;
+        segs.forEach(function (s) {
+          if (!node.dirs.has(s)) node.dirs.set(s, { dirs: new Map(), files: [] });
+          node = node.dirs.get(s);
+        });
+        node.files.push({ name: fname, source: e.source });
+      });
+
+      const out = [];
+      (function walk(node, path) {
+        if (node.files.length) {
+          // ★ 智能排序：有规律按名，无规律保持原始顺序
+          out.push({ path: path, files: smartSortFiles(node.files) });
+        }
+        const names = Array.from(node.dirs.keys()).sort(naturalCompare);
+        names.forEach(function (n) {
+          walk(node.dirs.get(n), path ? path + '/' + n : n);
+        });
+      })(root, '');
+
+      return out;
+    }
+
+    /* ==================== 入口：设置分组 ==================== */
+    function setGroups(gs) {
+      resetAll();
+      if (!gs || !gs.length) {
+        welcome.classList.remove('hide');
+        topbar.classList.add('hide');
+        hudEl.classList.remove('show');
+        return;
+      }
+
+      groups = gs;
+      totalImages = 0;
+      for (let i = 0; i < groups.length; i++) totalImages += groups[i].files.length;
+
+      welcome.classList.add('hide');
+      topbar.classList.remove('hide');
+      hudEl.classList.add('show');
+
+      loadNextGroup();
+      pokeTopbar();
+    }
+
+    /* ==================== 追加一组到视图 ==================== */
+    function appendGroup(g) {
+      const frag = document.createDocumentFragment();
+
+      /* 分组标题 */
+      const head = document.createElement('div');
+      head.className = 'group-head';
+
+      const icon = document.createElement('span');
+      icon.className = 'gicon';
+      icon.textContent = '📁';
+
+      const nm = document.createElement('span');
+      nm.className = 'gname';
+      nm.textContent = g.path || '当前文件夹';
+      nm.title = g.path || '当前文件夹';
+
+      const ct = document.createElement('span');
+      ct.className = 'gcount';
+      ct.textContent = g.files.length + ' 张';
+
+      head.appendChild(icon);
+      head.appendChild(nm);
+      head.appendChild(ct);
+      frag.appendChild(head);
+
+      /* 图片 */
+      g.files.forEach(function (f) {
+        const sec = document.createElement('div');
+        sec.className = 'slide';
+
+        const img = document.createElement('img');
+        img.src = resolveUrl(f.source);
+        img.alt = f.name;
+        img.decoding = 'async';
+        img.loading = 'eager';
+
+        img.onerror = function () {
+          this.style.display = 'none';
+          if (this.parentNode && !this.parentNode.querySelector('.img-err')) {
+            const err = document.createElement('div');
+            err.className = 'img-err';
+            err.textContent = '⚠ 无法加载图片：' + f.name;
+            this.parentNode.appendChild(err);
+          }
+        };
+
+        sec.appendChild(img);
+        frag.appendChild(sec);
+        slides.push(sec);
+      });
+
+      viewer.insertBefore(frag, loadingTip);
+    }
+
+    /* ==================== 加载下一组 ==================== */
+    function loadNextGroup() {
+      if (loadingGroup) return;
+      if (loadedGroups >= groups.length) return;
+
+      loadingGroup = true;
+      loadingTip.hidden = false;
+      loadingTip.innerHTML = '<span class="spin"></span>正在加载…';
+
+      requestAnimationFrame(function () {
+        setTimeout(function () {
+          appendGroup(groups[loadedGroups]);
+          loadedGroups++;
+
+          loadingGroup = false;
+          loadingTip.hidden = true;
+          loadingTip.innerHTML = '';
+
+          updateHUD();
+          checkLoadMore();
+        }, 40);
+      });
+    }
+
+    /* ==================== 是否继续加载 ==================== */
+    function checkLoadMore() {
+      if (!groups.length) return;
+
+      if (loadedGroups >= groups.length) {
+        if (!loadingGroup) {
+          loadingTip.hidden = false;
+          loadingTip.textContent = '—— 已加载全部 ' + totalImages + ' 张图片 ——';
+        }
+        return;
+      }
+
+      if (loadingGroup) return;
+
+      const vh = viewer.clientHeight || window.innerHeight;
+      const remain = viewer.scrollHeight - viewer.scrollTop - vh;
+
+      if (remain < vh * 1.2) loadNextGroup();
+    }
+
+    /* ==================== HUD 更新 ==================== */
+    function updateHUD() {
+      if (!slides.length) {
+        counterEl.textContent = '0 / ' + totalImages;
+        fnameEl.textContent = '';
+        pbarEl.style.width = '0%';
+        return;
+      }
+
+      const vh  = viewer.clientHeight;
+      const top = viewer.scrollTop;
+
+      let idx = 0, best = Infinity;
+      for (let i = 0; i < slides.length; i++) {
+        const s = slides[i];
+        const center = s.offsetTop + s.offsetHeight / 2 - vh / 2;
+        const d = Math.abs(center - top);
+        if (d < best) { best = d; idx = i; }
+      }
+      currentIndex = idx;
+
+      counterEl.textContent = (idx + 1) + ' / ' + totalImages;
+
+      const img = slides[idx].querySelector('img');
+      fnameEl.textContent = (img && img.alt) ? img.alt : '';
+
+      const maxScroll = viewer.scrollHeight - vh;
+      const pct = maxScroll > 0 ? Math.min(100, Math.max(0, (top / maxScroll) * 100)) : 100;
+      pbarEl.style.width = pct + '%';
+    }
+
+    /* ==================== 吸附到最近整图 ==================== */
+    function snapToNearest() {
+      if (!slides.length) return;
+
+      const vh  = viewer.clientHeight;
+      const top = viewer.scrollTop;
+      const maxScroll = Math.max(0, viewer.scrollHeight - vh);
+      const threshold = vh * 0.45;
+
+      let best = null, bestDist = Infinity;
+
+      for (let i = 0; i < slides.length; i++) {
+        const s  = slides[i];
+        const st = s.offsetTop;
+        const h  = s.offsetHeight;
+
+        const points = [st];
+        if (h > vh + 4) points.push(st + h - vh);
+
+        for (let k = 0; k < points.length; k++) {
+          const p = Math.min(Math.max(points[k], 0), maxScroll);
+          const d = Math.abs(p - top);
+          if (d < bestDist) { bestDist = d; best = p; }
+        }
+      }
+
+      if (best === null) return;
+      if (bestDist < 3) return;
+      if (bestDist > threshold) return;
+
+      scrollToY(best, true);
+    }
+
+    /* ==================== 滚动监听 ==================== */
+    viewer.addEventListener('scroll', function () {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(function () {
+          updateHUD();
+          ticking = false;
+        });
+      }
+
+      checkLoadMore();
+      pokeTopbar();
+
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(snapToNearest, 160);
+    }, { passive: true });
+
+    /* ==================== 顶栏自动隐藏 ==================== */
+    function pokeTopbar() {
+      if (!slides.length) return;
+      topbar.classList.remove('hide');
+      clearTimeout(topbarTimer);
+      topbarTimer = setTimeout(function () {
+        if (slides.length) topbar.classList.add('hide');
+      }, 1800);
+    }
+
+    /* ==================== 键盘 ==================== */
+    function goTo(i) {
+      if (!slides.length) return;
+      i = Math.max(0, Math.min(slides.length - 1, i));
+      scrollToY(slides[i].offsetTop, true);
+    }
+    document.addEventListener('keydown', function (e) {
+      if (!slides.length) return;
+      if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault(); goTo(currentIndex + 1); pokeTopbar();
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault(); goTo(currentIndex - 1); pokeTopbar();
+      } else if (e.key === 'Home') {
+        e.preventDefault(); goTo(0);
+      } else if (e.key === 'End') {
+        e.preventDefault(); goTo(slides.length - 1);
+      }
+    });
+
+    /* ==================== 处理选择的文件 ==================== */
+    function handleFiles(fileList) {
+      const arr = Array.prototype.slice.call(fileList).filter(isImageFile);
+      if (!arr.length) { alert('没有找到可显示的图片文件'); return; }
+
+      const entries = arr.map(function (f) {
+        return { source: f, relPath: f.webkitRelativePath || f.name };
+      });
+
+      const gs = buildGroups(entries);
+      if (!gs.length) { alert('没有找到可显示的图片文件'); return; }
+
+      setGroups(gs);
+    }
+
+    /* ==================== 拖拽读取 ==================== */
+    function readEntry(entry, path, out) {
+      return new Promise(function (resolve) {
+        if (!entry) { resolve(); return; }
+
+        if (entry.isFile) {
+          entry.file(
+            function (file) {
+              out.push({ file: file, path: path + entry.name });
+              resolve();
+            },
+            function () { resolve(); }
+          );
+        } else if (entry.isDirectory) {
+          const reader = entry.createReader();
+          const all = [];
+          const readBatch = function () {
+            reader.readEntries(
+              function (entries) {
+                if (!entries.length) {
+                  (async function () {
+                    for (let i = 0; i < all.length; i++) {
+                      await readEntry(all[i], path + entry.name + '/', out);
+                    }
+                    resolve();
+                  })();
+                  return;
+                }
+                all.push.apply(all, entries);
+                readBatch();
+              },
+              function () { resolve(); }
+            );
+          };
+          readBatch();
+        } else {
+          resolve();
+        }
+      });
+    }
+
+    let dragCounter = 0;
+    function showMask(on) { dropmask.classList.toggle('on', on); }
+
+    ['dragenter', 'dragover'].forEach(function (type) {
+      document.addEventListener(type, function (e) {
+        e.preventDefault();
+        if (type === 'dragenter') dragCounter++;
+        showMask(true);
+      });
+    });
+
+    document.addEventListener('dragleave', function (e) {
+      e.preventDefault();
+      dragCounter = Math.max(0, dragCounter - 1);
+      if (dragCounter === 0) showMask(false);
+    });
+
+    document.addEventListener('drop', async function (e) {
+      e.preventDefault();
+      dragCounter = 0;
+      showMask(false);
+
+      const dt = e.dataTransfer;
+      if (!dt) return;
+
+      const topEntries = [];
+      const plainFiles = [];
+
+      if (dt.items && dt.items.length) {
+        for (let i = 0; i < dt.items.length; i++) {
+          const it = dt.items[i];
+          if (it.kind !== 'file') continue;
+          const entry = it.webkitGetAsEntry ? it.webkitGetAsEntry() : null;
+          if (entry) {
+            topEntries.push(entry);
+          } else {
+            const f = it.getAsFile();
+            if (f) plainFiles.push(f);
+          }
+        }
+      } else if (dt.files && dt.files.length) {
+        for (let i = 0; i < dt.files.length; i++) plainFiles.push(dt.files[i]);
+      }
+
+      if (topEntries.length) {
+        const collected = [];
+        for (let i = 0; i < topEntries.length; i++) {
+          await readEntry(topEntries[i], '', collected);
+        }
+
+        const imgs = collected.filter(function (x) { return isImageFile(x.file); });
+        if (!imgs.length) { alert('没有找到可显示的图片文件'); return; }
+
+        const entries = imgs.map(function (x) {
+          return { source: x.file, relPath: x.path };
+        });
+
+        const gs = buildGroups(entries);
+        if (!gs.length) { alert('没有找到可显示的图片文件'); return; }
+
+        setGroups(gs);
+
+      } else if (plainFiles.length) {
+        handleFiles(plainFiles);
+      }
+    });
+
+    /* ==================== 按钮事件 ==================== */
+    document.getElementById('pickFolderBtn').addEventListener('click', function () { folderInput.click(); });
+    document.getElementById('pickFolderTop').addEventListener('click', function () { folderInput.click(); });
+    document.getElementById('pickFilesBtn').addEventListener('click', function () { fileInput.click(); });
+
+    folderInput.addEventListener('change', function (e) {
+      if (e.target.files && e.target.files.length) handleFiles(e.target.files);
+      e.target.value = '';
+    });
+    fileInput.addEventListener('change', function (e) {
+      if (e.target.files && e.target.files.length) handleFiles(e.target.files);
+      e.target.value = '';
+    });
+
+    /* ==================== 示例（Canvas 生成，含多级文件夹） ==================== */
+    function makeDemoImage(w, h, c1, c2, idx, label) {
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      const ctx = cv.getContext('2d');
+
+      const g = ctx.createLinearGradient(0, 0, w, h);
+      g.addColorStop(0, c1);
+      g.addColorStop(1, c2);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = 'rgba(255,255,255,.16)';
+      ctx.lineWidth = Math.max(1, w / 800);
+      const step = Math.round(w / 12);
+      for (let x = step; x < w; x += step) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = step; y < h; y += step) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(255,255,255,.96)';
+      ctx.font = '900 ' + Math.round(w / 8) + 'px -apple-system, "PingFang SC", sans-serif';
+      ctx.fillText(String(idx), w / 2, h / 2 - h * 0.07);
+
+      ctx.font = '600 ' + Math.round(w / 26) + 'px -apple-system, "PingFang SC", sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,.88)';
+      ctx.fillText(label, w / 2, h / 2 + h * 0.075);
+
+      return cv.toDataURL('image/jpeg', 0.82);
+    }
+
+    document.getElementById('demoBtn').addEventListener('click', function () {
+      // 故意用“有规律”的名字，演示自动按名排序
+      const gs = [
+        {
+          path: '',
+          files: [
+            { name: 'photo_01.jpg', source: makeDemoImage(1200, 800,  '#ff8787', '#c92a2a', 1, '横向 1200×800') },
+            { name: 'photo_02.jpg', source: makeDemoImage(900, 1400,  '#4dabf7', '#1864ab', 2, '纵向 900×1400') },
+            { name: 'photo_10.jpg', source: makeDemoImage(1000, 700,  '#ffd43b', '#e67700', 10, '横向 1000×700') }
+          ]
+        },
+        {
+          path: '风景',
+          files: [
+            { name: '1.jpg',  source: makeDemoImage(1400, 900,  '#69db7c', '#2b8a3e', 1, '横向 1400×900') },
+            { name: '2.jpg',  source: makeDemoImage(1000, 1600, '#ffd43b', '#e67700', 2, '纵向 1000×1600') },
+            { name: '11.jpg', source: makeDemoImage(1200, 900,  '#74c0fc', '#1971c2', 11, '横向 1200×900') }
+          ]
+        },
+        {
+          path: '风景/日落',
+          files: [
+            { name: 'sunset.jpg', source: makeDemoImage(1600, 1000, '#da77f2', '#862e9c', 1, '横向 1600×1000') }
+          ]
+        },
+        {
+          path: '人像',
+          files: [
+            { name: 'a.jpg', source: makeDemoImage(1000, 1000, '#38d9a9', '#0b7285', 1, '方形 1000×1000') },
+            { name: 'b.jpg', source: makeDemoImage(800,  1200, '#f783ac', '#a61e4d', 2, '纵向 800×1200') }
+          ]
+        }
+      ];
+
+      setGroups(gs);
+    });
+
+    /* ==================== 尺寸变化 ==================== */
+    let resizeTimer = null;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        if (!slides.length) return;
+        const s = slides[currentIndex];
+        if (s) viewer.scrollTop = s.offsetTop;
+        updateHUD();
+        checkLoadMore();
+      }, 150);
+    });
+
+    /* ==================== 页面卸载释放 ==================== */
+    window.addEventListener('beforeunload', releaseUrls);
+
+    /* ==================== 初始化 ==================== */
+    resetAll();
+
+  })();
+</script>
+</body>
+</html>
