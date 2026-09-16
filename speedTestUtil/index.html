@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>网络测速工具</title>
+<style>
+  :root{
+    --bg:#0b1020;
+    --card:#141a2e;
+    --line:#232c48;
+    --txt:#e9edf9;
+    --dim:#8a95b8;
+    --down:#4d9dff;
+    --up:#3ddc97;
+    --ping:#ffb547;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    margin:0;min-height:100vh;
+    background:radial-gradient(1100px 560px at 50% -12%, #1b2446 0%, #0b1020 62%) no-repeat, #0b1020;
+    color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    display:flex;justify-content:center;
+    padding:28px 16px 56px;
+  }
+  .app{width:100%;max-width:520px}
+
+  header{text-align:center;margin-bottom:8px}
+  h1{font-size:22px;margin:0 0 6px;letter-spacing:.5px}
+  header p{margin:0;color:var(--dim);font-size:13px}
+
+  /* ------- 仪表盘 ------- */
+  .gauge-wrap{position:relative;width:224px;height:224px;margin:10px auto 4px}
+  .gauge{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+  .track{fill:none;stroke:#1d2540;stroke-width:12}
+  .bar{
+    fill:none;stroke:url(#grad);stroke-width:12;stroke-linecap:round;
+    transition:stroke-dashoffset .18s linear;
+  }
+  .gauge-center{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:2px;pointer-events:none;
+  }
+  #gaugeValue{
+    font-size:40px;font-weight:700;line-height:1;
+    font-variant-numeric:tabular-nums;letter-spacing:-1px;
+  }
+  #gaugeUnit{font-size:13px;color:var(--dim)}
+  #gaugePhase{font-size:12px;color:var(--dim);margin-top:6px;min-height:16px}
+
+  /* ------- 结果卡片 ------- */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:12px 10px;text-align:center;
+  }
+  .card-title{
+    font-size:12px;color:var(--dim);display:flex;align-items:center;
+    justify-content:center;gap:5px;margin-bottom:8px;
+  }
+  .dot{width:7px;height:7px;border-radius:50%}
+  .dot.d{background:var(--down)}
+  .dot.u{background:var(--up)}
+  .dot.p{background:var(--ping)}
+  .card-value{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+  .card-value small{font-size:11px;color:var(--dim);font-weight:400;margin-left:2px}
+  .card-sub{font-size:11px;color:var(--dim);margin-top:4px;font-variant-numeric:tabular-nums}
+
+  /* ------- 按钮 ------- */
+  #startBtn{
+    width:100%;padding:15px;border:none;border-radius:14px;cursor:pointer;
+    font-size:16px;font-weight:600;color:#04121a;letter-spacing:1px;
+    background:linear-gradient(100deg,#4d9dff,#3ddc97);
+    transition:transform .12s, opacity .2s, filter .2s;
+  }
+  #startBtn:hover:not(:disabled){filter:brightness(1.08)}
+  #startBtn:active:not(:disabled){transform:scale(.985)}
+  #startBtn:disabled{opacity:.55;cursor:not-allowed}
+
+  /* ------- 结论 ------- */
+  .result{
+    margin-top:16px;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:14px 16px;font-size:14px;line-height:1.75;
+    color:var(--dim);display:none;
+  }
+  .result.show{display:block;animation:fade .3s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .result b{color:var(--txt)}
+  .result .big{
+    display:block;font-size:26px;font-weight:700;color:var(--up);
+    margin:2px 0 6px;letter-spacing:-.5px;
+  }
+  .result .err{color:#ff7b7b}
+  .tip{font-size:11px;color:#5d688a;text-align:center;margin-top:16px;line-height:1.6}
+  @media (max-width:420px){
+    .cards{grid-template-columns:repeat(3,1fr);gap:7px}
+    .card{padding:10px 6px}
+    .card-value{font-size:18px}
+    #gaugeValue{font-size:34px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>网络测速</h1>
+    <p>下载速度 · 上传速度 · 延迟 · 宽带带宽估算</p>
+  </header>
+
+  <div class="gauge-wrap">
+    <svg class="gauge" viewBox="0 0 200 200">
+      <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#4d9dff"/>
+          <stop offset="100%" stop-color="#3ddc97"/>
+        </linearGradient>
+      </defs>
+      <circle class="track" cx="100" cy="100" r="86"/>
+      <circle class="bar" id="bar" cx="100" cy="100" r="86"/>
+    </svg>
+    <div class="gauge-center">
+      <div id="gaugeValue">--</div>
+      <div id="gaugeUnit">Mbps</div>
+      <div id="gaugePhase">点击下方按钮开始</div>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-title"><i class="dot d"></i>下载</div>
+      <div class="card-value"><span id="downVal">--</span><small>Mbps</small></div>
+      <div class="card-sub" id="downAlt">-- MB/s</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="dot u"></i>上传</div>
+      <div class="card-value"><span id="upVal">--</span><small>Mbps</small></div>
+      <div class="card-sub" id="upAlt">-- MB/s</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="dot p"></i>延迟</div>
+      <div class="card-value"><span id="pingVal">--</span><small>ms</small></div>
+      <div class="card-sub">&nbsp;</div>
+    </div>
+  </div>
+
+  <button id="startBtn">开 始 测 速</button>
+
+  <div class="result" id="result"></div>
+
+  <p class="tip">
+    测试基于 Cloudflare 公共测速节点，会消耗一定流量（约 30–200MB）<br>
+    结果受 Wi-Fi、运营商、服务器负载等影响，仅供参考
+  </p>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= 配置 ================= */
+  const DOWN_URL = n => `https://speed.cloudflare.com/__down?bytes=${n}`;
+  const UP_URL = 'https://speed.cloudflare.com/__up';
+
+  const DOWN_DURATION = 6000;   // 下载测试时长 ms
+  const UP_DURATION   = 6000;   // 上传测试时长 ms
+  const DOWN_CONNS    = 4;      // 下载并发连接数
+  const DOWN_CHUNK    = 10 * 1024 * 1024;
+  const UP_CONNS      = 3;      // 上传并发连接数
+  const UP_CHUNK      = 4 * 1024 * 1024;
+
+  // 常见宽带上限档位（Mbps）
+  const TIERS = [1, 2, 4, 6, 8, 10, 20, 30, 50, 100, 200, 300, 500, 1000, 2000, 5000];
+
+  /* ================= 工具 ================= */
+  const $ = id => document.getElementById(id);
+  const rand = () => Math.random().toString(36).slice(2);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  const CIRC = 2 * Math.PI * 86;
+
+  const els = {
+    bar: $('bar'),
+    gaugeValue: $('gaugeValue'),
+    gaugeUnit: $('gaugeUnit'),
+    gaugePhase: $('gaugePhase'),
+    downVal: $('downVal'),
+    downAlt: $('downAlt'),
+    upVal: $('upVal'),
+    upAlt: $('upAlt'),
+    pingVal: $('pingVal'),
+    btn: $('startBtn'),
+    result: $('result')
+  };
+
+  els.bar.style.strokeDasharray = CIRC;
+  els.bar.style.strokeDashoffset = CIRC;
+
+  function setCenter(text, unit) {
+    els.gaugeValue.textContent = text;
+    els.gaugeUnit.textContent = unit;
+  }
+
+  // 对数刻度：0 ~ 1000Mbps 映射到 0~100%
+  function setGauge(mbps) {
+    const v = Math.max(0, mbps || 0);
+    const p = Math.min(1, Math.log10(1 + v) / Math.log10(1001));
+    els.bar.style.strokeDashoffset = CIRC * (1 - p);
+    if (v > 0) {
+      setCenter(v >= 100 ? v.toFixed(0) : v.toFixed(1), 'Mbps');
+    }
+  }
+
+  function resetGauge() {
+    els.bar.style.strokeDashoffset = CIRC;
+    setCenter('--', 'Mbps');
+  }
+
+  /* 速度采样器：每 250ms 计算一次瞬时速率 */
+  function makeRateMeter(getBytes, onTick) {
+    let lastB = getBytes();
+    let lastT = performance.now();
+    const timer = setInterval(() => {
+      const now = performance.now();
+      const dt = (now - lastT) / 1000;
+      if (dt <= 0.05) return;
+      const b = getBytes();
+      const db = b - lastB;
+      lastB = b;
+      lastT = now;
+      if (db > 0) onTick((db * 8) / dt / 1e6);
+    }, 250);
+    return () => clearInterval(timer);
+  }
+
+  /* ================= 延迟 ================= */
+  async function measureLatency(onSample) {
+    // 预热（建立 DNS / TLS 连接，不计入结果）
+    try {
+      await fetch(DOWN_URL(1) + '&r=' + rand(), { cache: 'no-store' });
+    } catch (e) { /* ignore */ }
+
+    const samples = [];
+    for (let i = 0; i < 6; i++) {
+      const t0 = performance.now();
+      try {
+        await fetch(DOWN_URL(1) + '&r=' + rand(), { cache: 'no-store' });
+        samples.push(performance.now() - t0);
+      } catch (e) { /* ignore */ }
+      if (onSample && samples.length) {
+        const s = samples.slice().sort((a, b) => a - b);
+        onSample(s[Math.floor(s.length / 2)]);
+      }
+      await sleep(50);
+    }
+    if (!samples.length) return null;
+    samples.sort((a, b) => a - b);
+    return samples[Math.floor(samples.length / 2)];
+  }
+
+  /* ================= 下载 ================= */
+  async function measureDownload(onTick) {
+    const ac = new AbortController();
+    const t0 = performance.now();
+    const deadline = t0 + DOWN_DURATION;
+    let bytes = 0;
+    let firstError = null;
+
+    const stopMeter = makeRateMeter(() => bytes, onTick);
+
+    const worker = async () => {
+      try {
+        while (performance.now() < deadline) {
+          const res = await fetch(DOWN_URL(DOWN_CHUNK) + '&r=' + rand(), {
+            cache: 'no-store',
+            signal: ac.signal
+          });
+          if (!res.ok || !res.body) throw new Error('HTTP ' + res.status);
+
+          const reader = res.body.getReader();
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            bytes += value.byteLength;
+            if (performance.now() >= deadline) {
+              ac.abort();
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+        if (!firstError) firstError = e;
+      }
+    };
+
+    await Promise.allSettled(Array.from({ length: DOWN_CONNS }, worker));
+    stopMeter();
+
+    const sec = (performance.now() - t0) / 1000;
+    if (bytes === 0) throw (firstError || new Error('无法获取下载数据'));
+
+    return { mbps: (bytes * 8) / sec / 1e6, mbpsAvg: (bytes * 8) / sec / 1e6, bytes, sec };
+  }
+
+  /* ================= 上传 ================= */
+  async function measureUpload(onTick) {
+    const payload = new Blob([new Uint8Array(UP_CHUNK)], { type: 'application/octet-stream' });
+    const t0 = performance.now();
+    const deadline = t0 + UP_DURATION;
+    let bytes = 0;
+    let stopped = false;
+    let firstError = null;
+
+    const stopMeter = makeRateMeter(() => bytes, onTick);
+    const active = new Set();
+
+    const worker = () => new Promise(resolve => {
+      const sendOne = () => {
+        if (stopped || performance.now() >= deadline) return resolve();
+
+        const xhr = new XMLHttpRequest();
+        let sent = 0;
+        let settled = false;
+
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          active.delete(xhr);
+          sendOne();
+        };
+
+        xhr.open('POST', UP_URL + '?r=' + rand(), true);
+        xhr.timeout = 60000;
+
+        xhr.upload.onprogress = e => {
+          bytes += e.loaded - sent;
+          sent = e.loaded;
+          if (performance.now() >= deadline) {
+            stopped = true;
+            try { xhr.abort(); } catch (_) {}
+            resolve();
+          }
+        };
+        xhr.onload  = finish;
+        xhr.onerror = () => { if (!firstError) firstError = new Error('上传请求失败'); finish(); };
+        xhr.onabort = finish;
+        xhr.ontimeout = () => { if (!firstError) firstError = new Error('上传超时'); finish(); };
+
+        active.add(xhr);
+        try { xhr.send(payload); } catch (e) { active.delete(xhr); resolve(); }
+      };
+      sendOne();
+    });
+
+    // 到点强制中止
+    const killer = setTimeout(() => {
+      stopped = true;
+      active.forEach(x => { try { x.abort(); } catch (_) {} });
+    }, UP_DURATION + 300);
+
+    await Promise.all(Array.from({ length: UP_CONNS }, worker));
+    clearTimeout(killer);
+    stopMeter();
+
+    const sec = (performance.now() - t0) / 1000;
+    if (bytes === 0) throw (firstError || new Error('无法获取上传数据'));
+
+    return { mbps: (bytes * 8) / sec / 1e6, bytes, sec };
+  }
+
+  /* ================= 带宽档位估算 ================= */
+  function estimateTier(mbps) {
+    const target = mbps * 0.9;
+    for (const t of TIERS) if (t >= target) return t;
+    return TIERS[TIERS.length - 1];
+  }
+
+  function tierLabel(t) {
+    return t >= 1000 ? (t / 1000) + 'G' : t + 'M';
+  }
+
+  /* ================= 主流程 ================= */
+  let running = false;
+
+  async function run() {
+    if (running) return;
+    running = true;
+    els.btn.disabled = true;
+    els.btn.textContent = '测 速 中 …';
+    els.result.classList.remove('show');
+    els.result.innerHTML = '';
+    els.downVal.textContent = '--';
+    els.upVal.textContent = '--';
+    els.pingVal.textContent = '--';
+    els.downAlt.textContent = '-- MB/s';
+    els.upAlt.textContent = '-- MB/s';
+    resetGauge();
+
+    try {
+      /* 1. 延迟 */
+      els.gaugePhase.textContent = '测量网络延迟…';
+      setCenter('--', 'ms');
+      const ping = await measureLatency(v => setCenter(v.toFixed(0), 'ms'));
+      els.pingVal.textContent = ping != null ? ping.toFixed(0) : '--';
+
+      /* 2. 下载 */
+      els.gaugePhase.textContent = '正在测试下载速度…';
+      resetGauge();
+      await sleep(180);
+      const down = await measureDownload(v => setGauge(v));
+      setGauge(down.mbps);
+      els.downVal.textContent = down.mbps.toFixed(2);
+      els.downAlt.textContent = (down.mbps / 8).toFixed(2) + ' MB/s';
+
+      /* 3. 上传 */
+      els.gaugePhase.textContent = '正在测试上传速度…';
+      resetGauge();
+      await sleep(180);
+      const up = await measureUpload(v => setGauge(v));
+      setGauge(up.mbps);
+      els.upVal.textContent = up.mbps.toFixed(2);
+      els.upAlt.textContent = (up.mbps / 8).toFixed(2) + ' MB/s';
+
+      /* 4. 结论 */
+      els.gaugePhase.textContent = '测试完成';
+
+      const tier = estimateTier(down.mbps);
+      const tierUp = estimateTier(up.mbps);
+
+      els.result.innerHTML =
+        '估算宽带带宽' +
+        '<span class="big">约 ' + tierLabel(tier) + ' 宽带（下行）</span>' +
+        '下载：<b>' + down.mbps.toFixed(2) + ' Mbps</b>（' + (down.mbps / 8).toFixed(2) + ' MB/s）<br>' +
+        '上传：<b>' + up.mbps.toFixed(2) + ' Mbps</b>（' + (up.mbps / 8).toFixed(2) + ' MB/s）<br>' +
+        '延迟：<b>' + (ping != null ? ping.toFixed(0) : '--') + ' ms</b><br>' +
+        '本次测试约消耗流量：<b>' + ((down.bytes + up.bytes) / 1048576).toFixed(1) + ' MB</b><br>' +
+        '<span style="font-size:12px;color:#5d688a">' +
+        '参考：上行约对应 ' + tierLabel(tierUp) + ' 档位。实际签约带宽可能高于估算值（受 Wi-Fi、网线、设备性能影响）。' +
+        '</span>';
+      els.result.classList.add('show');
+
+    } catch (err) {
+      els.gaugePhase.textContent = '测试失败';
+      resetGauge();
+      els.result.innerHTML = '<span class="err">测速失败：' + (err && err.message ? err.message : err) +
+        '<br>请检查网络连接，或稍后重试。</span>';
+      els.result.classList.add('show');
+    } finally {
+      running = false;
+      els.btn.disabled = false;
+      els.btn.textContent = '重 新 测 速';
+    }
+  }
+
+  els.btn.addEventListener('click', run);
+})();
+</script>
+</body>
+</html>
