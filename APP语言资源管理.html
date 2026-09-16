@@ -1,0 +1,2457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel 预览与行编辑</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+      background: #eef2f7;
+      color: #1f2937;
+      height: 100%;
+      overflow: hidden;
+    }
+    .container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 12px 12px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 12px;
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 22px; color: #0f766e; }
+    header p { margin-top: 4px; color: #64748b; font-size: 13px; line-height: 1.5; }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, .08);
+      border: 1px solid #e2e8f0;
+      flex-shrink: 0;
+    }
+    .file-card { transition: all 0.3s ease; }
+    .file-card.hidden { display: none; }
+    .card h2 { font-size: 15px; color: #0f766e; margin-bottom: 10px; }
+    .dropzone {
+      border: 2px dashed #94a3b8;
+      border-radius: 10px;
+      padding: 20px 16px;
+      text-align: center;
+      color: #64748b;
+      cursor: pointer;
+      transition: all .2s;
+      font-size: 14px;
+    }
+    .dropzone:hover, .dropzone.dragover { border-color: #0f766e; background: #f0fdfa; color: #0f766e; }
+    .dropzone .big { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .dropzone-actions {
+      display: none;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .dropzone-actions.show { display: flex; }
+    .dropzone-actions .btn { flex: 1; min-width: 180px; }
+    #fileInput, #androidFolderInput, #appendRowAndroidInput, #appendColFolderInput { display: none; }
+    #fileInfo {
+      margin-top: 8px; font-size: 13px; color: #0f766e;
+      padding: 6px 10px; border-radius: 8px; display: none; word-break: break-all;
+    }
+    #tableCard {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-wrap {
+      flex: 1;
+      min-height: 0;
+      overflow-x: auto;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+    }
+    table {
+      width: auto;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 8px 10px;
+      text-align: left;
+      white-space: normal;
+      word-break: break-all;
+    }
+    th {
+      background: #f0fdfa;
+      color: #0f766e;
+      position: sticky;
+      top: 0;
+      cursor: pointer;
+    }
+    th:hover { background: #d1fae5; }
+    .row-num-col {
+      background-color: #f8fafc;
+      color: #64748b;
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      text-align: center;
+      width: 60px;
+      min-width: 60px;
+      cursor: default;
+    }
+    .row-click { cursor: pointer; color: #0f766e; font-weight: 600; }
+    .row-click:hover { background: #ecfdf5; }
+    .empty { color: #64748b; text-align: center; padding: 30px 0; }
+    .action-bar { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; flex-shrink: 0; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      background: #0f766e; color: #fff; border: none; border-radius: 8px;
+      padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .15s;
+    }
+    .btn:hover { filter: brightness(0.92); }
+    .btn.secondary { background: #fff; color: #0f766e; border: 1.5px solid #0f766e; }
+    .btn.secondary:hover { background: #f0fdfa; filter: none; }
+    .btn.blue { background: #0284c7; color: #fff; }
+    .btn.orange { background: #f97316; color: #fff; }
+    .btn.purple { background: #7c3aed; color: #fff; }
+    .btn.green { background: #16a34a; color: #fff; }
+    .btn.cyan { background: #0891b2; color: #fff; }
+    .btn.pink { background: #db2777; color: #fff; }
+
+    .modal-mask {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: none; align-items: center; justify-content: center; z-index: 9999;
+    }
+    .modal-wrap {
+      background: #fff; width: min(600px, 92vw); max-height: 88vh; overflow-y: auto;
+      border-radius: 12px; padding: 22px; box-shadow: 0 4px 20px rgba(0,0,0,.15);
+    }
+    .modal-wrap h3 { color: #0f766e; margin-bottom: 16px; }
+    .modal-field { margin-bottom: 12px; }
+    .modal-field label { display: block; font-size: 13px; color: #475569; margin-bottom: 4px; }
+
+    .modal-field input:not([type="checkbox"]),
+    .modal-field textarea,
+    .modal-field select {
+      width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1;
+      border-radius: 8px; font-size: 14px;
+      background: #fff;
+    }
+    .modal-field input:not([type="checkbox"]):focus,
+    .modal-field textarea:focus,
+    .modal-field select:focus {
+      outline: none; border-color: #0f766e;
+      box-shadow: 0 0 0 2px rgba(15,118,110,.12);
+    }
+
+    .modal-field input[type="checkbox"],
+    .col-check-item input[type="checkbox"] {
+      flex: 0 0 auto;
+      width: 15px;
+      height: 15px;
+      margin: 0;
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      accent-color: #0f766e;
+      cursor: pointer;
+    }
+
+    .modal-field .checkbox-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.8em;
+      margin: 0;
+      padding: 0;
+      cursor: pointer;
+      font-size: 13px;
+      color: #475569;
+      user-select: none;
+    }
+
+    .field-tip {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+    .field-tip strong { color: #0f766e; }
+
+    .xcstrings-badge {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 8px;
+      font-size: 11px;
+      border-radius: 10px;
+      background: #fce7f3;
+      color: #9d174d;
+      font-weight: 600;
+    }
+
+    .xcstrings-group-list {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: #f0fdfa;
+      border: 1px solid #99f6e4;
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.7;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+    .xcstrings-group-list .group-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 2px 0;
+    }
+    .xcstrings-group-list .group-name {
+      color: #0f766e;
+      font-weight: 600;
+      word-break: break-all;
+    }
+    .xcstrings-group-list .group-count {
+      color: #64748b;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .append-row-preview {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: #f0fdfa;
+      border: 1px solid #99f6e4;
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.6;
+      word-break: break-all;
+      min-height: 36px;
+      color: #475569;
+    }
+    .append-row-preview .preview-label { color: #64748b; margin-right: 6px; }
+    .append-row-preview .preview-value { color: #0f766e; font-weight: 600; }
+
+    .source-picker-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .source-picker-actions .btn { width: 100%; }
+
+    .col-move-row { display: flex; align-items: center; gap: 10px; }
+    .btn-mini {
+      background: #f0fdfa;
+      color: #0f766e;
+      border: 1px solid #0f766e;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .btn-mini:hover:not(:disabled) { background: #d1fae5; }
+    .btn-mini:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+      border-color: #cbd5e1;
+      color: #94a3b8;
+      background: #f8fafc;
+    }
+    #headerColPos { flex: 1; text-align: center; font-size: 13px; color: #475569; }
+
+    .export-select-all {
+      display: flex;
+      align-items: center;
+      gap: 0.8em;
+      padding: 8px 0;
+      margin-bottom: 6px;
+      border-bottom: 1px dashed #e2e8f0;
+      font-size: 13px;
+      color: #334155;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+    .col-check-group {
+      max-height: 240px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 0;
+      width: 100%;
+    }
+    .col-check-item {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.8em;
+      margin: 6px 0;
+      padding: 0 10px;
+      width: 100%;
+    }
+    .col-check-item label {
+      flex: 1 1 auto;
+      min-width: 0;
+      margin: 0;
+      text-align: left;
+      cursor: pointer;
+      font-size: 13px;
+      color: #334155;
+      word-break: break-all;
+    }
+    .col-badge {
+      font-size: 11px;
+      margin-left: 4px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      white-space: nowrap;
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+    .col-badge.new { background: #dbeafe; color: #1d4ed8; }
+    .col-badge.overwrite { background: #ffedd5; color: #c2410c; }
+    .col-badge.ios { background: #fce7f3; color: #9d174d; }
+
+    .match-list {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 10px;
+      max-height: 260px;
+      overflow-y: auto;
+      background: #fafbfc;
+    }
+    .match-item { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; }
+    .match-item:first-child { margin-top: 0; }
+    .match-item:last-child { margin-bottom: 0; }
+    .match-target {
+      flex: 1 1 0; min-width: 0; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+      color: #334155; font-weight: 500;
+      padding: 4px 8px; background: #fff;
+      border: 1px solid #e2e8f0; border-radius: 6px;
+    }
+    .match-arrow { color: #94a3b8; flex-shrink: 0; font-weight: 700; }
+    .match-select {
+      flex: 1 1 0; min-width: 0; padding: 4px 8px;
+      border: 1px solid #cbd5e1; border-radius: 6px;
+      font-size: 13px; background: #fff; width: auto;
+    }
+    .match-select:focus {
+      outline: none; border-color: #0f766e;
+      box-shadow: 0 0 0 2px rgba(15,118,110,.12);
+    }
+    .match-select.matched { border-color: #0f766e; background: #f0fdfa; }
+
+    .append-file-info {
+      font-size: 13px; color: #0f766e;
+      padding: 8px 12px; background: #f0fdfa;
+      border-radius: 8px; word-break: break-all; line-height: 1.5;
+    }
+    .two-col { display: flex; gap: 10px; }
+    .two-col > * { flex: 1; min-width: 0; }
+
+    .modal-buttons { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; flex-wrap: wrap; }
+    .modal-save { background: #0f766e; color: #fff; }
+    .modal-save:hover { background: #115e59; }
+    .modal-del { background: #fef2f2; color: #b91c1c; }
+    .modal-del:hover { background: #fee2e2; }
+    .modal-close { background: #f1f5f9; color: #475569; }
+    .modal-close:hover { background: #e2e8f0; }
+
+    footer { text-align: center; color: #94a3b8; font-size: 12px; margin-top: 8px; line-height: 1.6; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Excel 预览与行编辑</h1>
+    <p>支持 Excel / Android / iOS 资源（.lproj / .xcstrings）导入，列/行数据追加，导出 Excel / Android ZIP / iOS 资源。</p>
+  </header>
+
+  <div class="card file-card" id="fileCard">
+    <h2>① 选择数据来源</h2>
+    <div class="dropzone" id="dropzone">
+      <div class="big">点击选择或拖拽</div>
+      <div>支持 Excel、Android 资源、iOS 资源（.lproj 或 .xcstrings）</div>
+    </div>
+    <div class="dropzone-actions" id="dropzoneActions">
+      <button type="button" class="btn secondary" id="chooseExcelBtn">📄 选择 Excel 文件</button>
+      <button type="button" class="btn secondary" id="chooseLocalizationBtn">📁 选择本地化资源文件夹</button>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls">
+    <input type="file" id="androidFolderInput" webkitdirectory directory multiple>
+    <input type="file" id="appendRowAndroidInput" webkitdirectory directory multiple>
+    <input type="file" id="appendColFolderInput" webkitdirectory directory multiple>
+    <div id="fileInfo"></div>
+  </div>
+
+  <div class="card" id="tableCard" style="display:none;">
+    <h2>② 表格预览（点击表头修改标题/删除/移动列｜点击行数据单元格编辑行）</h2>
+    <div class="table-wrap" id="tableWrap"></div>
+    <div class="action-bar">
+      <button class="btn secondary" id="addRowBtn">➕ 新增一行</button>
+      <button class="btn blue" id="addColBtn">➕ 新增一列</button>
+      <button class="btn purple" id="appendColDataBtn">🔗 数据追加(列)</button>
+      <button class="btn green" id="appendRowDataBtn">📥 数据追加(行)</button>
+      <button class="btn cyan" id="androidExportBtn">📦 导出 Android ZIP</button>
+      <button class="btn pink" id="iOSExportBtn">📦 导出 iOS 资源</button>
+      <button class="btn orange" id="exportBtn">💾 导出 Excel</button>
+    </div>
+  </div>
+
+  <footer>提示：所有修改仅保存在浏览器内存中，点击导出按钮才会生成新的文件。</footer>
+</div>
+
+<!-- 新增行弹窗 -->
+<div class="modal-mask" id="addRowModalMask">
+  <div class="modal-wrap">
+    <h3>新增一行</h3>
+    <div class="modal-field">
+      <label>插入到第几行（从0开始）</label>
+      <input type="number" id="rowIndexInput" min="0">
+    </div>
+    <div class="modal-buttons">
+      <button class="modal-close" id="addRowCancelBtn">取消</button>
+      <button class="modal-save" id="addRowSaveBtn">插入行</button>
+    </div>
+  </div>
+</div>
+
+<!-- 行编辑弹窗 -->
+<div class="modal-mask" id="editModalMask">
+  <div class="modal-wrap">
+    <h3 id="modalTitle">编辑行数据</h3>
+    <div id="modalFields"></div>
+    <div class="modal-buttons">
+      <button class="modal-del" id="delBtn">删除本行</button>
+      <button class="modal-close" id="cancelBtn">取消</button>
+      <button class="modal-save" id="saveBtn">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 修改表头弹窗 -->
+<div class="modal-mask" id="headerModalMask">
+  <div class="modal-wrap">
+    <h3>编辑列</h3>
+    <div class="modal-field">
+      <label>标题名称</label>
+      <input type="text" id="headerInput">
+    </div>
+    <div class="modal-field">
+      <label>列位置调整</label>
+      <div class="col-move-row">
+        <button class="btn-mini" id="headerMoveLeftBtn">⬅ 左移</button>
+        <span id="headerColPos"></span>
+        <button class="btn-mini" id="headerMoveRightBtn">右移 ➡</button>
+      </div>
+    </div>
+    <div class="modal-buttons">
+      <button class="modal-del" id="headerDelBtn">删除本列</button>
+      <button class="modal-close" id="headerCancelBtn">取消</button>
+      <button class="modal-save" id="headerSaveBtn">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 插入列弹窗 -->
+<div class="modal-mask" id="colModalMask">
+  <div class="modal-wrap">
+    <h3>新增列</h3>
+    <div class="modal-field">
+      <label>插入到第几列（从0开始）</label>
+      <input type="number" id="colIndexInput" min="0" value="0">
+    </div>
+    <div class="modal-field">
+      <label>新列标题</label>
+      <input type="text" id="colNameInput">
+    </div>
+    <div class="modal-field">
+      <label class="checkbox-row" for="autoIncCheck">
+        <input type="checkbox" id="autoIncCheck">
+        <span>开启自增填充（例：key1,key2,key3）</span>
+      </label>
+    </div>
+    <div class="modal-buttons">
+      <button class="modal-close" id="colCancelBtn">取消</button>
+      <button class="modal-save" id="colSaveBtn">插入列</button>
+    </div>
+  </div>
+</div>
+
+<!-- 数据追加(列) 数据源选择弹窗 -->
+<div class="modal-mask" id="appendColSourceMask">
+  <div class="modal-wrap" style="width: min(420px, 92vw);">
+    <h3>选择数据来源</h3>
+    <div class="modal-field">
+      <p style="color:#64748b;font-size:13px;margin-bottom:12px;line-height:1.6;">
+        请选择要用于追加的目标文件类型：
+      </p>
+      <div class="source-picker-actions">
+        <button class="btn secondary" id="appendColPickExcel">📄 选择 Excel 文件</button>
+        <button class="btn secondary" id="appendColPickAndroid">📁 选择 Android 资源文件夹</button>
+        <button class="btn secondary" id="appendColPickIOS">📁 选择 iOS 资源文件夹</button>
+      </div>
+    </div>
+    <div class="modal-buttons">
+      <button class="modal-close" id="appendColSourceCancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 数据追加(列) 配置弹窗 -->
+<div class="modal-mask" id="appendColModalMask">
+  <div class="modal-wrap">
+    <h3>数据追加（列）</h3>
+    <div class="modal-field">
+      <label>新文件</label>
+      <div class="append-file-info" id="appendColFileName">—</div>
+    </div>
+    <div class="modal-field">
+      <label>匹配列设置（两文件列标题可不同）</label>
+      <div class="two-col">
+        <select id="appendColTargetMatch" title="目标文件的列"></select>
+        <select id="appendColOrigMatch" title="原始文件的列"></select>
+      </div>
+      <div class="field-tip">
+        左侧选目标文件的列，右侧选原始文件的列。两列数据内容相同即视为同一行，目标文件选中列的数据将更新到原始文件对应行。
+      </div>
+    </div>
+    <div class="modal-field" style="margin-bottom:0;">
+      <label>选择要追加的列</label>
+      <label class="export-select-all" for="appendColSelectAll">
+        <input type="checkbox" id="appendColSelectAll" checked>
+        <span>全选 / 全不选</span>
+      </label>
+      <div class="col-check-group" id="appendColList"></div>
+    </div>
+    <div class="modal-buttons">
+      <button class="modal-close" id="appendColCancelBtn">取消</button>
+      <button class="modal-save" id="appendColConfirmBtn">确认追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- 数据追加(行) 数据源选择弹窗 -->
+<div class="modal-mask" id="appendRowSourceMask">
+  <div class="modal-wrap" style="width: min(420px, 92vw);">
+    <h3>选择数据来源</h3>
+    <div class="modal-field">
+      <p style="color:#64748b;font-size:13px;margin-bottom:12px;line-height:1.6;">
+        请选择要用于追加的目标文件类型：
+      </p>
+      <div class="source-picker-actions">
+        <button class="btn secondary" id="appendRowPickExcel">📄 选择 Excel 文件</button>
+        <button class="btn secondary" id="appendRowPickAndroid">📁 选择 Android 资源文件夹</button>
+        <button class="btn secondary" id="appendRowPickIOS">📁 选择 iOS 资源文件夹</button>
+      </div>
+    </div>
+    <div class="modal-buttons">
+      <button class="modal-close" id="appendRowSourceCancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 数据追加(行) 配置弹窗 -->
+<div class="modal-mask" id="appendRowModalMask">
+  <div class="modal-wrap">
+    <h3>数据追加（行）</h3>
+    <div class="modal-field">
+      <label>新文件</label>
+      <div class="append-file-info" id="appendRowFileName">—</div>
+    </div>
+    <div class="modal-field">
+      <label>列匹配规则（目标文件列 → 原始文件列）</label>
+      <div class="match-list" id="appendRowMatchList"></div>
+      <div class="field-tip">
+        同名列已自动对齐。例：目标文件列「英文」→ 原始文件列「en」，则将「英文」的数据写入「en」。
+      </div>
+    </div>
+    <div class="modal-field" style="margin-bottom:0;">
+      <label>选择要追加的列（仅显示已匹配的列）</label>
+      <label class="export-select-all" for="appendRowSelectAll">
+        <input type="checkbox" id="appendRowSelectAll" checked>
+        <span>全选 / 全不选</span>
+      </label>
+      <div class="col-check-group" id="appendRowColList"></div>
+    </div>
+    <div class="modal-field">
+      <label>从目标文件的第几行开始追加（从0开始）</label>
+      <input type="number" id="appendRowStartInput" min="0" value="0">
+      <div class="append-row-preview" id="appendRowPreview">—</div>
+      <div class="field-tip" id="appendRowRangeTip">例：填100，则从目标文件第100行到最后一行追加到当前文件中。</div>
+    </div>
+    <div class="modal-buttons">
+      <button class="modal-close" id="appendRowCancelBtn">取消</button>
+      <button class="modal-save" id="appendRowConfirmBtn">确认追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- 导出 Android ZIP 弹窗 -->
+<div class="modal-mask" id="androidExportModalMask">
+  <div class="modal-wrap">
+    <h3>导出 Android 资源 ZIP</h3>
+    <div class="modal-field">
+      <label>Key 列（string name）</label>
+      <select id="androidKeyColSelect"></select>
+      <div class="field-tip">选择存储字符串名称（name 属性）的列，默认自动识别 Key / name 列。</div>
+    </div>
+    <div class="modal-field" style="margin-bottom:0;">
+      <label>选择要导出的语言列</label>
+      <div class="field-tip">每列会按语言标题映射到对应的 Android values 文件夹（例：zh-Hans → values-zh-rCN，en → values）</div>
+      <label class="export-select-all" for="androidExportSelectAll" style="margin-top:6px;">
+        <input type="checkbox" id="androidExportSelectAll" checked>
+        <span>全选 / 全不选</span>
+      </label>
+      <div class="col-check-group" id="androidExportList"></div>
+    </div>
+    <div class="modal-buttons">
+      <button class="modal-close" id="androidExportCancel">取消</button>
+      <button class="modal-save" id="androidExportConfirm">确认导出 ZIP</button>
+    </div>
+  </div>
+</div>
+
+<!-- 导出 iOS 弹窗 -->
+<div class="modal-mask" id="iOSExportModalMask">
+  <div class="modal-wrap">
+    <h3>导出 iOS 资源</h3>
+    <div class="modal-field">
+      <label>Key 列（字符串键）</label>
+      <select id="iOSKeyColSelect"></select>
+      <div class="field-tip">选择存储字符串名称的列，默认自动识别 Key / name 列。</div>
+    </div>
+    <div class="modal-field" style="margin-bottom:0;">
+      <label>选择要导出的语言列</label>
+      <div class="field-tip" id="iOSExportModeTip"></div>
+      <div class="xcstrings-group-list" id="iOSExportGroupList" style="display:none;"></div>
+      <label class="export-select-all" for="iOSExportSelectAll" style="margin-top:6px;">
+        <input type="checkbox" id="iOSExportSelectAll" checked>
+        <span>全选 / 全不选</span>
+      </label>
+      <div class="col-check-group" id="iOSExportList"></div>
+    </div>
+    <div class="modal-buttons">
+      <button class="modal-close" id="iOSExportCancel">取消</button>
+      <button class="modal-save" id="iOSExportConfirm">确认导出</button>
+    </div>
+  </div>
+</div>
+
+<!-- 导出列选择弹窗 -->
+<div class="modal-mask" id="exportColModalMask">
+  <div class="modal-wrap">
+    <h3>选择需要导出的列</h3>
+    <div class="modal-field" style="margin-bottom:0;">
+      <label>勾选导出列（默认全部选中）</label>
+      <label class="export-select-all" for="exportSelectAll">
+        <input type="checkbox" id="exportSelectAll" checked>
+        <span>全选 / 全不选</span>
+      </label>
+      <div class="col-check-group" id="colCheckWrap"></div>
+    </div>
+    <div class="modal-buttons">
+      <button class="modal-close" id="exportColCancel">取消</button>
+      <button class="modal-save" id="exportColConfirm">确认导出</button>
+    </div>
+  </div>
+</div>
+
+<!-- SheetJS + JSZip -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script>
+  "use strict";
+
+  let excelHeaders = [];
+  let excelRows = [];
+  let currentRowIndex = null;
+  let currentHeaderIndex = null;
+  let currentSheetName = 'Sheet1';
+  let originalFileName = '';
+  let hasData = false;
+
+  let pendingAppendColData = null;
+  let pendingAppendRowData = null;
+
+  const dropzone = document.getElementById('dropzone');
+  const dropzoneActions = document.getElementById('dropzoneActions');
+  const chooseExcelBtn = document.getElementById('chooseExcelBtn');
+  const chooseLocalizationBtn = document.getElementById('chooseLocalizationBtn');
+  const fileInput = document.getElementById('fileInput');
+  const androidFolderInput = document.getElementById('androidFolderInput');
+  const appendRowAndroidInput = document.getElementById('appendRowAndroidInput');
+  const appendColFolderInput = document.getElementById('appendColFolderInput');
+  const fileInfo = document.getElementById('fileInfo');
+  const fileCard = document.getElementById('fileCard');
+  const tableCard = document.getElementById('tableCard');
+  const tableWrap = document.getElementById('tableWrap');
+  const exportBtn = document.getElementById('exportBtn');
+  const addRowBtn = document.getElementById('addRowBtn');
+  const addColBtn = document.getElementById('addColBtn');
+  const appendColDataBtn = document.getElementById('appendColDataBtn');
+  const appendRowDataBtn = document.getElementById('appendRowDataBtn');
+  const androidExportBtn = document.getElementById('androidExportBtn');
+  const iOSExportBtn = document.getElementById('iOSExportBtn');
+
+  const addRowModalMask = document.getElementById('addRowModalMask');
+  const rowIndexInput = document.getElementById('rowIndexInput');
+  const addRowSaveBtn = document.getElementById('addRowSaveBtn');
+  const addRowCancelBtn = document.getElementById('addRowCancelBtn');
+
+  const editModalMask = document.getElementById('editModalMask');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalFields = document.getElementById('modalFields');
+  const saveBtn = document.getElementById('saveBtn');
+  const delBtn = document.getElementById('delBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+
+  const headerModalMask = document.getElementById('headerModalMask');
+  const headerInput = document.getElementById('headerInput');
+  const headerSaveBtn = document.getElementById('headerSaveBtn');
+  const headerCancelBtn = document.getElementById('headerCancelBtn');
+  const headerDelBtn = document.getElementById('headerDelBtn');
+  const headerMoveLeftBtn = document.getElementById('headerMoveLeftBtn');
+  const headerMoveRightBtn = document.getElementById('headerMoveRightBtn');
+  const headerColPos = document.getElementById('headerColPos');
+
+  const colModalMask = document.getElementById('colModalMask');
+  const colIndexInput = document.getElementById('colIndexInput');
+  const colNameInput = document.getElementById('colNameInput');
+  const autoIncCheck = document.getElementById('autoIncCheck');
+  const colSaveBtn = document.getElementById('colSaveBtn');
+  const colCancelBtn = document.getElementById('colCancelBtn');
+
+  const appendColSourceMask = document.getElementById('appendColSourceMask');
+  const appendColPickExcel = document.getElementById('appendColPickExcel');
+  const appendColPickAndroid = document.getElementById('appendColPickAndroid');
+  const appendColPickIOS = document.getElementById('appendColPickIOS');
+  const appendColSourceCancel = document.getElementById('appendColSourceCancel');
+
+  const appendColModalMask = document.getElementById('appendColModalMask');
+  const appendColFileName = document.getElementById('appendColFileName');
+  const appendColTargetMatch = document.getElementById('appendColTargetMatch');
+  const appendColOrigMatch = document.getElementById('appendColOrigMatch');
+  const appendColSelectAll = document.getElementById('appendColSelectAll');
+  const appendColList = document.getElementById('appendColList');
+  const appendColCancelBtn = document.getElementById('appendColCancelBtn');
+  const appendColConfirmBtn = document.getElementById('appendColConfirmBtn');
+
+  const appendRowSourceMask = document.getElementById('appendRowSourceMask');
+  const appendRowPickExcel = document.getElementById('appendRowPickExcel');
+  const appendRowPickAndroid = document.getElementById('appendRowPickAndroid');
+  const appendRowPickIOS = document.getElementById('appendRowPickIOS');
+  const appendRowSourceCancel = document.getElementById('appendRowSourceCancel');
+
+  const appendRowModalMask = document.getElementById('appendRowModalMask');
+  const appendRowFileName = document.getElementById('appendRowFileName');
+  const appendRowMatchList = document.getElementById('appendRowMatchList');
+  const appendRowSelectAll = document.getElementById('appendRowSelectAll');
+  const appendRowColList = document.getElementById('appendRowColList');
+  const appendRowStartInput = document.getElementById('appendRowStartInput');
+  const appendRowPreview = document.getElementById('appendRowPreview');
+  const appendRowRangeTip = document.getElementById('appendRowRangeTip');
+  const appendRowCancelBtn = document.getElementById('appendRowCancelBtn');
+  const appendRowConfirmBtn = document.getElementById('appendRowConfirmBtn');
+
+  const androidExportModalMask = document.getElementById('androidExportModalMask');
+  const androidKeyColSelect = document.getElementById('androidKeyColSelect');
+  const androidExportSelectAll = document.getElementById('androidExportSelectAll');
+  const androidExportList = document.getElementById('androidExportList');
+  const androidExportCancel = document.getElementById('androidExportCancel');
+  const androidExportConfirm = document.getElementById('androidExportConfirm');
+
+  const iOSExportModalMask = document.getElementById('iOSExportModalMask');
+  const iOSKeyColSelect = document.getElementById('iOSKeyColSelect');
+  const iOSExportSelectAll = document.getElementById('iOSExportSelectAll');
+  const iOSExportList = document.getElementById('iOSExportList');
+  const iOSExportModeTip = document.getElementById('iOSExportModeTip');
+  const iOSExportGroupList = document.getElementById('iOSExportGroupList');
+  const iOSExportCancel = document.getElementById('iOSExportCancel');
+  const iOSExportConfirm = document.getElementById('iOSExportConfirm');
+
+  const exportColModalMask = document.getElementById('exportColModalMask');
+  const colCheckWrap = document.getElementById('colCheckWrap');
+  const exportColCancel = document.getElementById('exportColCancel');
+  const exportColConfirm = document.getElementById('exportColConfirm');
+  const exportSelectAll = document.getElementById('exportSelectAll');
+
+  /* ============================================================
+     语言映射表
+     ============================================================ */
+  const LANG_TO_ANDROID = {
+    'en': null, 'en-us': null,
+    'zh': 'zh-rCN', 'zh-hans': 'zh-rCN', 'zh-cn': 'zh-rCN',
+    'zh-sg': 'zh-rSG', 'zh-hans-cn': 'zh-rCN', 'zh-hans-sg': 'zh-rSG',
+    'zh-hant': 'zh-rTW', 'zh-tw': 'zh-rTW', 'zh-hk': 'zh-rHK', 'zh-mo': 'zh-rMO',
+    'zh-hant-tw': 'zh-rTW', 'zh-hant-hk': 'zh-rHK', 'zh-hant-mo': 'zh-rMO',
+    'en-gb': 'en-rGB', 'en-au': 'en-rAU', 'en-ca': 'en-rCA', 'en-ie': 'en-rIE',
+    'en-in': 'en-rIN', 'en-nz': 'en-rNZ', 'en-sg': 'en-rSG', 'en-za': 'en-rZA',
+    'ja': 'ja', 'ja-jp': 'ja', 'ko': 'ko', 'ko-kr': 'ko',
+    'ar': 'ar', 'ar-sa': 'ar', 'ar-eg': 'ar-rEG', 'ar-il': 'ar-rIL',
+    'de': 'de', 'de-de': 'de', 'de-at': 'de-rAT', 'de-ch': 'de-rCH', 'de-li': 'de-rLI',
+    'fr': 'fr', 'fr-fr': 'fr', 'fr-ca': 'fr-rCA', 'fr-be': 'fr-rBE', 'fr-ch': 'fr-rCH',
+    'es': 'es', 'es-es': 'es', 'es-mx': 'es-rMX', 'es-us': 'es-rUS', 'es-xl': 'es-rUS',
+    'es-ar': 'es-rAR', 'es-co': 'es-rCO',
+    'pt': 'pt', 'pt-br': 'pt-rBR', 'pt-pt': 'pt-rPT',
+    'it': 'it', 'it-it': 'it', 'it-ch': 'it-rCH',
+    'ru': 'ru', 'ru-ru': 'ru', 'uk': 'uk', 'uk-ua': 'uk',
+    'nl': 'nl', 'nl-nl': 'nl', 'nl-be': 'nl-rBE',
+    'da': 'da', 'da-dk': 'da', 'sv': 'sv', 'sv-se': 'sv',
+    'nb': 'nb', 'nb-no': 'nb', 'no': 'nb', 'nn': 'nn', 'nn-no': 'nn',
+    'fi': 'fi', 'fi-fi': 'fi',
+    'pl': 'pl', 'pl-pl': 'pl', 'cs': 'cs', 'cs-cz': 'cs', 'sk': 'sk', 'sk-sk': 'sk',
+    'hu': 'hu', 'hu-hu': 'hu', 'ro': 'ro', 'ro-ro': 'ro', 'bg': 'bg', 'bg-bg': 'bg',
+    'el': 'el', 'el-gr': 'el', 'tr': 'tr', 'tr-tr': 'tr',
+    'he': 'iw', 'he-il': 'iw', 'iw': 'iw', 'iw-il': 'iw',
+    'id': 'in', 'id-id': 'in', 'in': 'in', 'in-id': 'in',
+    'yi': 'ji', 'ji': 'ji',
+    'hi': 'hi', 'hi-in': 'hi', 'bn': 'bn', 'bn-bd': 'bn',
+    'ta': 'ta', 'ta-in': 'ta', 'te': 'te', 'te-in': 'te',
+    'vi': 'vi', 'vi-vn': 'vi', 'th': 'th', 'th-th': 'th',
+    'ms': 'ms', 'ms-my': 'ms', 'fil': 'fil', 'tl': 'fil',
+    'hr': 'hr', 'hr-hr': 'hr', 'sl': 'sl', 'sl-si': 'sl', 'sr': 'sr',
+    'lt': 'lt', 'lt-lt': 'lt', 'lv': 'lv', 'lv-lv': 'lv', 'et': 'et', 'et-ee': 'et',
+    'ca': 'ca', 'ca-es': 'ca', 'gl': 'gl', 'eu': 'eu',
+    'is': 'is', 'ga': 'ga', 'cy': 'cy',
+    'fa': 'fa', 'fa-ir': 'fa', 'ur': 'ur', 'sw': 'sw',
+    'af': 'af',
+  };
+
+  const SCRIPT_TAG_TO_BCP47 = {
+    'hans': 'Hans', 'hant': 'Hant', 'latn': 'Latn', 'cyrl': 'Cyrl',
+    'arab': 'Arab', 'hebr': 'Hebr', 'deva': 'Deva', 'thai': 'Thai',
+    'kana': 'Kana', 'hani': 'Hani',
+  };
+
+  const ANDROID_TO_IOS_LANG = {
+    'zh-rCN': 'zh-Hans', 'zh-rTW': 'zh-Hant', 'zh-rHK': 'zh-Hant',
+    'zh-rMO': 'zh-Hant', 'zh-rSG': 'zh-Hans',
+    'iw': 'he', 'in': 'id', 'ji': 'yi',
+  };
+
+  function langHeaderToAndroidFolder(header) {
+    const raw = (header || '').trim();
+    if (!raw) return 'values';
+    const low = raw.toLowerCase();
+    if (low === 'values') return 'values';
+    if (low.startsWith('values-')) return raw;
+    let code = raw;
+    if (low.endsWith('.lproj')) code = raw.slice(0, -'.lproj'.length);
+    code = code.replace(/_/g, '-');
+    const key = code.toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(LANG_TO_ANDROID, key)) {
+      const androidCode = LANG_TO_ANDROID[key];
+      if (androidCode === null) return 'values';
+      return `values-${androidCode}`;
+    }
+    const parts = key.split('-');
+    if (parts.length >= 2 && SCRIPT_TAG_TO_BCP47[parts[1]]) {
+      const script = SCRIPT_TAG_TO_BCP47[parts[1]];
+      return `values-b+${parts[0]}+${script}`;
+    }
+    if (parts.length >= 2) {
+      const lang = parts[0];
+      const region = parts[1];
+      let androidCode;
+      if (region.startsWith('r') && region.length >= 3) {
+        androidCode = `${lang}-r${region.slice(1).toUpperCase()}`;
+      } else {
+        androidCode = `${lang}-r${region.toUpperCase()}`;
+      }
+      return `values-${androidCode}`;
+    }
+    return `values-${key}`;
+  }
+
+  function langHeaderToIOSLproj(header) {
+    const raw = (header || '').trim();
+    if (!raw) return 'en.lproj';
+    const low = raw.toLowerCase();
+    if (low.endsWith('.lproj')) return raw;
+    if (low === 'values') return 'en.lproj';
+    if (low.startsWith('values-')) {
+      let code = raw.slice('values-'.length);
+      if (ANDROID_TO_IOS_LANG[code]) {
+        code = ANDROID_TO_IOS_LANG[code];
+      } else {
+        const m = code.match(/^(.+)-r([A-Z]{2})$/);
+        if (m) code = `${m[1]}-${m[2]}`;
+      }
+      return `${code}.lproj`;
+    }
+    return `${raw}.lproj`;
+  }
+
+  function langHeaderToIOSLangCode(header) {
+    const lproj = langHeaderToIOSLproj(header);
+    return lproj.replace(/\.lproj$/i, '');
+  }
+
+  /* ---------- 工具函数 ---------- */
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function timestampSuffix() {
+    const now = new Date();
+    return pad2(now.getMonth() + 1) + pad2(now.getDate())
+      + pad2(now.getHours()) + pad2(now.getMinutes()) + pad2(now.getSeconds());
+  }
+  function convertIosPlaceholder(text) {
+    return String(text).replace(/%(\d+)\$(@|ld)/g, '%$1$s');
+  }
+  function escapeXmlText(text) {
+    return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function escapeXmlAttr(text) {
+    return String(text).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function escapeIOSString(s) {
+    return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+  }
+  function unescapeIOSString(s) {
+    return String(s).replace(/\\(.)/g, (_, ch) => {
+      switch (ch) {
+        case 'n': return '\n';
+        case 't': return '\t';
+        case 'r': return '\r';
+        case '"': return '"';
+        case '\\': return '\\';
+        case "'": return "'";
+        case '0': return '\0';
+        default: return ch;
+      }
+    });
+  }
+  function parseIOSStringsContent(content) {
+    const result = {};
+    let text = String(content).replace(/\/\*[\s\S]*?\*\//g, '');
+    text = text.replace(/^\s*\/\/.*$/gm, '');
+    const regex = /"((?:[^"\\]|\\.)*)"\s*=\s*"((?:[^"\\]|\\.)*)"\s*;/g;
+    let m;
+    while ((m = regex.exec(text)) !== null) {
+      result[unescapeIOSString(m[1])] = unescapeIOSString(m[2]);
+    }
+    return result;
+  }
+  function buildExportFileName() {
+    let base = '修改后';
+    if (originalFileName) base = originalFileName.replace(/\.[^./\\]+$/, '');
+    return `${base}_${timestampSuffix()}.xlsx`;
+  }
+  function isExcelFile(file) {
+    const name = (file.name || '').toLowerCase();
+    return name.endsWith('.xlsx') || name.endsWith('.xls');
+  }
+
+  /**
+   * 检测资源文件夹类型
+   * 返回 { hasAndroid, hasIOSLproj, hasIOSXcstrings, hasIOS }
+   */
+  function detectResourceType(fileEntries) {
+    let hasAndroid = false;
+    let hasIOSLproj = false;
+    let hasIOSXcstrings = false;
+    for (const { path } of fileEntries) {
+      if (/values(?:-[^/]+)?\/strings\.xml$/.test(path)) hasAndroid = true;
+      if (/[^/]+\.lproj\/Localizable\.strings$/.test(path)) hasIOSLproj = true;
+      if (/\.xcstrings$/i.test(path)) hasIOSXcstrings = true;
+    }
+    return {
+      hasAndroid,
+      hasIOSLproj,
+      hasIOSXcstrings,
+      hasIOS: hasIOSLproj || hasIOSXcstrings,
+    };
+  }
+
+  window.addEventListener('beforeunload', function (e) {
+    if (!hasData) return;
+    const msg = '当前表格存在未导出的修改，确定离开吗？';
+    e.returnValue = msg;
+    return msg;
+  });
+
+  function downloadExcelFile(selectedColIndexes) {
+    if (!excelHeaders.length) return;
+    const outHeaders = selectedColIndexes.map(idx => excelHeaders[idx]);
+    const outRows = excelRows.map(row => selectedColIndexes.map(idx => row[idx] ?? ''));
+    const data = [outHeaders, ...outRows];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, currentSheetName || 'Sheet1');
+    XLSX.writeFile(wb, buildExportFileName());
+  }
+  function downloadBlob(blob, fileName) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  /* ============================================================
+     统一入口
+     ============================================================ */
+  dropzone.addEventListener('click', (e) => {
+    if (e.target.closest('button')) return;
+    dropzoneActions.classList.toggle('show');
+  });
+  chooseExcelBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropzoneActions.classList.remove('show');
+    fileInput.click();
+  });
+  chooseLocalizationBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropzoneActions.classList.remove('show');
+    androidFolderInput.click();
+  });
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', async e => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    dropzoneActions.classList.remove('show');
+    await handleDrop(e);
+  });
+
+  async function handleDrop(e) {
+    const dt = e.dataTransfer;
+    if (!dt) return;
+    if (dt.items && dt.items.length && typeof dt.items[0].webkitGetAsEntry === 'function') {
+      const entries = [];
+      for (let i = 0; i < dt.items.length; i++) {
+        const item = dt.items[i];
+        if (item.kind !== 'file') continue;
+        const entry = item.webkitGetAsEntry?.();
+        if (entry) entries.push(entry);
+      }
+      if (entries.length > 0) {
+        const firstEntry = entries[0];
+        if (firstEntry.isDirectory) {
+          const fileEntries = [];
+          for (const entry of entries) {
+            if (entry.isDirectory) await readDirRecursive(entry, '', fileEntries);
+          }
+          if (!fileEntries.length) { alert('拖入的文件夹为空'); return; }
+          await handleResourceFolderImport(fileEntries);
+          return;
+        }
+        if (firstEntry.isFile) {
+          try {
+            const file = await getFileFromEntry(firstEntry);
+            if (isExcelFile(file)) handleFile(file);
+            else alert('请拖入 Excel 文件、Android 或 iOS 资源文件夹');
+          } catch (err) { alert('读取文件失败：' + err.message); }
+          return;
+        }
+      }
+    }
+    if (dt.files && dt.files.length) {
+      const file = dt.files[0];
+      if (isExcelFile(file)) handleFile(file);
+      else alert('请拖入 Excel 文件、Android 或 iOS 资源文件夹');
+    }
+  }
+
+  function readDirRecursive(dirEntry, basePath, out) {
+    return new Promise((resolve) => {
+      const reader = dirEntry.createReader();
+      const readBatch = () => {
+        reader.readEntries(async (entries) => {
+          if (!entries.length) { resolve(); return; }
+          for (const entry of entries) {
+            const currentPath = basePath + '/' + entry.name;
+            if (entry.isFile) {
+              try {
+                const file = await getFileFromEntry(entry);
+                out.push({ file, path: currentPath });
+              } catch (err) { console.warn('读取文件失败:', entry.name, err); }
+            } else if (entry.isDirectory) {
+              await readDirRecursive(entry, currentPath, out);
+            }
+          }
+          readBatch();
+        }, () => resolve());
+      };
+      readBatch();
+    });
+  }
+  function getFileFromEntry(entry) {
+    return new Promise((resolve, reject) => { entry.file(resolve, reject); });
+  }
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) {
+      handleFile(fileInput.files[0]);
+      fileInput.value = '';
+    }
+  });
+  androidFolderInput.addEventListener('change', async () => {
+    const files = androidFolderInput.files;
+    if (!files || !files.length) return;
+    const fileEntries = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const path = file.webkitRelativePath || file.name;
+      fileEntries.push({ file, path });
+    }
+    await handleResourceFolderImport(fileEntries);
+    androidFolderInput.value = '';
+  });
+
+  /**
+   * 统一资源导入分发
+   * 优先级：Android → iOS .xcstrings（新规则）→ iOS .lproj（旧规则）
+   */
+  async function handleResourceFolderImport(fileEntries) {
+    const { hasAndroid, hasIOSLproj, hasIOSXcstrings } = detectResourceType(fileEntries);
+    if (!hasAndroid && !hasIOSLproj && !hasIOSXcstrings) {
+      alert(
+        '未找到可识别的本地化资源文件。\n\n' +
+        '支持以下格式：\n' +
+        '· Android：values-*/strings.xml\n' +
+        '· iOS 旧规则：*.lproj/Localizable.strings\n' +
+        '· iOS 新规则：*.xcstrings（Xcode 15+ String Catalog）'
+      );
+      return;
+    }
+    if (hasAndroid) {
+      await handleAndroidFolderImport(fileEntries);
+    } else if (hasIOSXcstrings) {
+      await handleIOSXcstringsFolderImport(fileEntries);
+    } else if (hasIOSLproj) {
+      await handleIOSFolderImport(fileEntries);
+    }
+  }
+
+  function handleFile(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        currentSheetName = sheetName;
+        const sheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+        excelHeaders = json.length ? json[0].map(String) : [];
+        excelRows = json.slice(1).map(row => excelHeaders.map((_, i) => (row[i] ?? '').toString()));
+        originalFileName = file.name;
+        hasData = true;
+
+        fileInfo.style.display = 'block';
+        fileInfo.textContent = `已加载：${file.name} ｜ Sheet:${sheetName} ｜ ${excelRows.length} 行 × ${excelHeaders.length} 列`;
+        fileCard.classList.add('hidden');
+        tableCard.style.display = 'flex';
+        renderTable();
+      } catch (err) { alert('读取 Excel 失败：' + err.message); }
+    };
+    reader.onerror = () => alert('读取文件失败，请重试。');
+    reader.readAsArrayBuffer(file);
+  }
+
+  function renderTable() {
+    if (!excelHeaders.length) {
+      tableWrap.innerHTML = '<div class="empty">无有效表格数据</div>';
+      return;
+    }
+    const maxVisibleCols = 8;
+    const colCount = excelHeaders.length;
+    const minColWidth = (100 / maxVisibleCols).toFixed(2);
+
+    let html = '<table><thead><tr>';
+    html += `<th class="row-num-col">#</th>`;
+    excelHeaders.forEach((h, colIdx) => {
+      let style = `min-width:${minColWidth}vw;`;
+      if (colCount < maxVisibleCols) style += `width:${(100 / colCount).toFixed(2)}vw;`;
+      html += `<th data-col="${colIdx}" title="点击编辑此列（可改名/删除/移动）" style="${style}">${escapeHtml(h)}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+    excelRows.forEach((row, rowIdx) => {
+      html += '<tr>';
+      html += `<td class="row-num-col">${rowIdx + 1}</td>`;
+      row.forEach((cell) => {
+        const val = escapeHtml(cell);
+        let style = `min-width:${minColWidth}vw;`;
+        if (colCount < maxVisibleCols) style += `width:${(100 / colCount).toFixed(2)}vw;`;
+        html += `<td data-row="${rowIdx}" class="row-click" title="点击编辑该行" style="${style}">${val || '（空）'}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    tableWrap.innerHTML = html;
+
+    tableWrap.querySelectorAll('.row-click').forEach(td => {
+      td.onclick = () => openModal(parseInt(td.dataset.row, 10));
+    });
+    tableWrap.querySelectorAll('th:not(.row-num-col)').forEach(th => {
+      th.onclick = () => openHeaderModal(parseInt(th.dataset.col, 10));
+    });
+  }
+
+  /* ===================== 表头（列）弹窗 ===================== */
+  function openHeaderModal(colIndex) {
+    currentHeaderIndex = colIndex;
+    headerInput.value = excelHeaders[colIndex];
+    updateHeaderPosUI();
+    headerModalMask.style.display = 'flex';
+    headerInput.focus();
+    headerInput.select();
+  }
+  function updateHeaderPosUI() {
+    if (currentHeaderIndex === null) return;
+    const total = excelHeaders.length;
+    headerColPos.textContent = `第 ${currentHeaderIndex + 1} / ${total} 列`;
+    headerMoveLeftBtn.disabled = currentHeaderIndex <= 0;
+    headerMoveRightBtn.disabled = currentHeaderIndex >= total - 1;
+    headerDelBtn.disabled = total <= 1;
+    headerDelBtn.style.opacity = total <= 1 ? .4 : 1;
+    headerDelBtn.style.cursor = total <= 1 ? 'not-allowed' : 'pointer';
+  }
+  function closeHeaderModal() {
+    headerModalMask.style.display = 'none';
+    currentHeaderIndex = null;
+  }
+  function swapCols(from, to) {
+    [excelHeaders[from], excelHeaders[to]] = [excelHeaders[to], excelHeaders[from]];
+    excelRows.forEach(row => { [row[from], row[to]] = [row[to], row[from]]; });
+  }
+  headerSaveBtn.onclick = () => {
+    if (currentHeaderIndex === null) return;
+    excelHeaders[currentHeaderIndex] = headerInput.value;
+    closeHeaderModal();
+    renderTable();
+  };
+  headerCancelBtn.onclick = closeHeaderModal;
+  headerModalMask.addEventListener('click', e => { if (e.target === headerModalMask) closeHeaderModal(); });
+  headerDelBtn.onclick = () => {
+    if (currentHeaderIndex === null) return;
+    if (excelHeaders.length <= 1) { alert('至少需要保留一列，无法删除。'); return; }
+    const colName = excelHeaders[currentHeaderIndex] || '（未命名）';
+    if (!confirm(`确定删除列「${colName}」吗？该列所有数据将被移除，此操作不可撤销。`)) return;
+    const idx = currentHeaderIndex;
+    excelHeaders.splice(idx, 1);
+    excelRows.forEach(row => row.splice(idx, 1));
+    closeHeaderModal();
+    renderTable();
+  };
+  headerMoveLeftBtn.onclick = () => {
+    if (currentHeaderIndex === null || currentHeaderIndex <= 0) return;
+    swapCols(currentHeaderIndex, currentHeaderIndex - 1);
+    currentHeaderIndex--;
+    renderTable();
+    updateHeaderPosUI();
+  };
+  headerMoveRightBtn.onclick = () => {
+    if (currentHeaderIndex === null || currentHeaderIndex >= excelHeaders.length - 1) return;
+    swapCols(currentHeaderIndex, currentHeaderIndex + 1);
+    currentHeaderIndex++;
+    renderTable();
+    updateHeaderPosUI();
+  };
+
+  /* ===================== 新增行 ===================== */
+  addRowBtn.onclick = () => {
+    if (!excelHeaders.length) { alert('请先上传Excel文件'); return; }
+    rowIndexInput.value = excelRows.length;
+    addRowModalMask.style.display = 'flex';
+    rowIndexInput.focus();
+    rowIndexInput.select();
+  };
+  function closeAddRowModal() { addRowModalMask.style.display = 'none'; }
+  addRowSaveBtn.onclick = () => {
+    const insertPos = parseInt(rowIndexInput.value, 10);
+    if (isNaN(insertPos) || insertPos < 0 || insertPos > excelRows.length) {
+      alert(`位置非法，范围0 ~ ${excelRows.length}`); return;
+    }
+    const blankRow = Array(excelHeaders.length).fill('');
+    excelRows.splice(insertPos, 0, blankRow);
+    closeAddRowModal();
+    renderTable();
+  };
+  addRowCancelBtn.onclick = closeAddRowModal;
+  addRowModalMask.addEventListener('click', e => { if (e.target === addRowModalMask) closeAddRowModal(); });
+
+  /* ---------- 插入列 ---------- */
+  addColBtn.onclick = () => {
+    if (!excelHeaders.length) { alert('请先上传Excel文件'); return; }
+    colIndexInput.value = excelHeaders.length;
+    colNameInput.value = '';
+    autoIncCheck.checked = false;
+    colModalMask.style.display = 'flex';
+    colNameInput.focus();
+  };
+  function closeColModal() { colModalMask.style.display = 'none'; }
+  colSaveBtn.onclick = () => {
+    const insertPos = parseInt(colIndexInput.value, 10);
+    const colName = colNameInput.value.trim();
+    const autoInc = autoIncCheck.checked;
+    if (isNaN(insertPos) || insertPos < 0 || insertPos > excelHeaders.length) {
+      alert('位置输入非法，范围0~' + excelHeaders.length); return;
+    }
+    if (!colName) { alert('请输入列标题'); return; }
+    excelHeaders.splice(insertPos, 0, colName);
+    excelRows.forEach((row, rowIdx) => {
+      const cellVal = autoInc ? (colName + (rowIdx + 1)) : '';
+      row.splice(insertPos, 0, cellVal);
+    });
+    closeColModal();
+    renderTable();
+  };
+  colCancelBtn.onclick = closeColModal;
+  colModalMask.addEventListener('click', e => { if (e.target === colModalMask) closeColModal(); });
+
+  /* ===================== 通用：读取追加 Excel 文件 ===================== */
+  function pickAndReadExcelFile(callback) {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = '.xlsx,.xls';
+    inp.onchange = () => {
+      if (!inp.files.length) return;
+      const file = inp.files[0];
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const wb = XLSX.read(data, { type: 'array' });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+          if (!json.length) { alert('文件没有数据'); return; }
+          const newHeaders = json[0].map(String);
+          const newRows = json.slice(1).map(row => newHeaders.map((_, i) => (row[i] ?? '').toString()));
+          callback({ newHeaders, newRows, fileName: file.name });
+        } catch (err) { alert('读取失败：' + err.message); }
+      };
+      reader.onerror = () => alert('读取文件失败，请重试。');
+      reader.readAsArrayBuffer(file);
+    };
+    inp.click();
+  }
+
+  /* ============================================================
+     Android 文件夹解析
+     ============================================================ */
+  async function parseAndroidFilesForAppend(files) {
+    const fileEntries = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const path = file.webkitRelativePath || file.name;
+      fileEntries.push({ file, path });
+    }
+    const langFiles = [];
+    for (const { file, path } of fileEntries) {
+      const m = path.match(/(?:^|\/)(values(?:-[^/]+)?)\/strings\.xml$/);
+      if (!m) continue;
+      const dirName = m[1];
+      const langCode = dirName === 'values' ? 'en' : dirName.slice('values-'.length);
+      langFiles.push({ langCode, dirName, file });
+    }
+    if (!langFiles.length) return null;
+    langFiles.sort((a, b) => {
+      if (a.dirName === 'values') return -1;
+      if (b.dirName === 'values') return 1;
+      return a.dirName.localeCompare(b.dirName);
+    });
+    return await buildDataFromResourceFiles(langFiles, 'android');
+  }
+
+  /* ============================================================
+     iOS 文件夹解析（同时支持 .lproj 与 .xcstrings）
+     ============================================================ */
+  async function parseIOSFilesForAppend(files) {
+    const fileEntries = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const path = file.webkitRelativePath || file.name;
+      fileEntries.push({ file, path });
+    }
+    const { hasIOSLproj, hasIOSXcstrings } = detectResourceType(fileEntries);
+
+    if (hasIOSXcstrings) {
+      return await buildDataFromXcstrings(fileEntries);
+    }
+    if (hasIOSLproj) {
+      const langFiles = [];
+      for (const { file, path } of fileEntries) {
+        const m = path.match(/(?:^|\/)([^/]+)\.lproj\/Localizable\.strings$/);
+        if (!m) continue;
+        const langName = m[1];
+        langFiles.push({ langCode: langName, dirName: langName + '.lproj', file });
+      }
+      if (!langFiles.length) return null;
+      langFiles.sort((a, b) => a.langCode.localeCompare(b.langCode));
+      return await buildDataFromResourceFiles(langFiles, 'ios');
+    }
+    return null;
+  }
+
+  /* ============================================================
+     从 .lproj / Android 资源文件构建表格数据
+     ============================================================ */
+  async function buildDataFromResourceFiles(langFiles, type) {
+    const keyToTranslations = {};
+    const allKeys = [];
+    const allKeysSet = new Set();
+    const langCodes = [];
+    const seenLangCode = new Set();
+
+    for (const { langCode, file } of langFiles) {
+      if (seenLangCode.has(langCode)) continue;
+      seenLangCode.add(langCode);
+      langCodes.push(langCode);
+      let text;
+      try { text = await file.text(); } catch (e) { continue; }
+      let entries;
+      if (type === 'android') {
+        let doc;
+        try {
+          const parser = new DOMParser();
+          doc = parser.parseFromString(text, 'text/xml');
+          if (doc.querySelector('parsererror')) continue;
+        } catch (e) { continue; }
+        entries = {};
+        doc.querySelectorAll('string').forEach(el => {
+          const name = el.getAttribute('name');
+          if (!name) return;
+          entries[name] = el.textContent || '';
+        });
+      } else {
+        entries = parseIOSStringsContent(text);
+      }
+      Object.keys(entries).forEach(key => {
+        if (!keyToTranslations[key]) keyToTranslations[key] = {};
+        keyToTranslations[key][langCode] = entries[key];
+        if (!allKeysSet.has(key)) {
+          allKeysSet.add(key);
+          allKeys.push(key);
+        }
+      });
+    }
+    if (!allKeys.length) return null;
+
+    const newHeaders = ['Key', ...langCodes];
+    const newRows = allKeys.map(key => {
+      const t = keyToTranslations[key] || {};
+      return [key, ...langCodes.map(lang => t[lang] || '')];
+    });
+    return {
+      newHeaders,
+      newRows,
+      fileName: type === 'ios' ? 'iOS 资源' : 'Android 资源',
+    };
+  }
+
+  /* ============================================================
+     从 .xcstrings 文件构建表格数据（新规则）
+     返回的表格结构：Key | iOS DocumentName | <语言1> | <语言2> | ...
+     ============================================================ */
+  async function buildDataFromXcstrings(fileEntries) {
+    const xcFiles = fileEntries.filter(({ path }) => /\.xcstrings$/i.test(path));
+    if (!xcFiles.length) return null;
+
+    // 按路径排序，保证稳定输出
+    xcFiles.sort((a, b) => a.path.localeCompare(b.path));
+
+    const keyToDocName = {};
+    const keyToTranslations = {};
+    const allKeys = [];
+    const allKeysSet = new Set();
+    const langCodes = [];
+    const seenLangCode = new Set();
+
+    for (const { file, path } of xcFiles) {
+      const fileName = path.split('/').pop();
+      let docName = fileName.replace(/\.xcstrings$/i, '');
+      if (!docName) docName = 'Localizable';
+
+      let text;
+      try { text = await file.text(); } catch (e) { continue; }
+
+      let json;
+      try { json = JSON.parse(text); } catch (e) { continue; }
+
+      // sourceLanguage 也作为语言列
+      const srcLang = json.sourceLanguage;
+      if (srcLang && !seenLangCode.has(srcLang)) {
+        seenLangCode.add(srcLang);
+        langCodes.push(srcLang);
+      }
+
+      const strings = json.strings || {};
+      Object.keys(strings).forEach(key => {
+        const entry = strings[key];
+        if (!entry) return;
+
+        if (!keyToTranslations[key]) keyToTranslations[key] = {};
+        if (!keyToDocName[key]) keyToDocName[key] = docName;
+
+        const localizations = entry.localizations || {};
+        Object.keys(localizations).forEach(lang => {
+          const loc = localizations[lang];
+          if (!loc) return;
+          let value = '';
+          // 基础 stringUnit
+          if (loc.stringUnit && typeof loc.stringUnit.value === 'string') {
+            value = loc.stringUnit.value;
+          }
+          // variations（复数形式）：取 "other" 分支作为值
+          else if (loc.variations) {
+            const plural = loc.variations.plural || {};
+            const other = plural.other;
+            if (other && other.stringUnit && typeof other.stringUnit.value === 'string') {
+              value = other.stringUnit.value;
+            }
+          }
+          // substitutions：暂不处理复杂情况
+          if (value) {
+            keyToTranslations[key][lang] = value;
+            if (!seenLangCode.has(lang)) {
+              seenLangCode.add(lang);
+              langCodes.push(lang);
+            }
+          }
+        });
+
+        if (!allKeysSet.has(key)) {
+          allKeysSet.add(key);
+          allKeys.push(key);
+        }
+      });
+    }
+
+    if (!allKeys.length) return null;
+
+    // 按字典序排序语言列
+    langCodes.sort();
+
+    const newHeaders = ['Key', 'iOS DocumentName', ...langCodes];
+    const newRows = allKeys.map(key => {
+      const t = keyToTranslations[key] || {};
+      const docName = keyToDocName[key] || '';
+      return [key, docName, ...langCodes.map(lang => t[lang] || '')];
+    });
+
+    return {
+      newHeaders,
+      newRows,
+      fileName: 'iOS 资源 (.xcstrings)',
+    };
+  }
+
+  /* ============================================================
+     数据追加（列）数据源选择
+     ============================================================ */
+  appendColDataBtn.onclick = () => {
+    if (!excelHeaders.length) { alert('请先上传Excel文件'); return; }
+    appendColSourceMask.style.display = 'flex';
+  };
+  appendColSourceCancel.onclick = () => { appendColSourceMask.style.display = 'none'; };
+  appendColSourceMask.addEventListener('click', e => {
+    if (e.target === appendColSourceMask) appendColSourceMask.style.display = 'none';
+  });
+  appendColPickExcel.onclick = () => {
+    appendColSourceMask.style.display = 'none';
+    pickAndReadExcelFile(data => {
+      pendingAppendColData = data;
+      openAppendColConfigModal();
+    });
+  };
+  appendColPickAndroid.onclick = () => {
+    appendColSourceMask.style.display = 'none';
+    appendColFolderInput.value = '';
+    appendColFolderInput.click();
+  };
+  appendColPickIOS.onclick = () => {
+    appendColSourceMask.style.display = 'none';
+    appendColFolderInput.value = '';
+    appendColFolderInput.click();
+  };
+  appendColFolderInput.addEventListener('change', async () => {
+    const files = appendColFolderInput.files;
+    if (!files || !files.length) { appendColFolderInput.value = ''; return; }
+    const fileEntries = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const path = file.webkitRelativePath || file.name;
+      fileEntries.push({ file, path });
+    }
+    const { hasAndroid, hasIOSLproj, hasIOSXcstrings } = detectResourceType(fileEntries);
+    let data = null;
+    if (hasAndroid) data = await parseAndroidFilesForAppend(files);
+    else if (hasIOSXcstrings || hasIOSLproj) data = await parseIOSFilesForAppend(files);
+    if (!data) {
+      alert(
+        '未找到可识别的本地化资源文件。\n\n' +
+        '支持：\n' +
+        '· Android：values-*/strings.xml\n' +
+        '· iOS 旧规则：*.lproj/Localizable.strings\n' +
+        '· iOS 新规则：*.xcstrings'
+      );
+      appendColFolderInput.value = '';
+      return;
+    }
+    pendingAppendColData = data;
+    openAppendColConfigModal();
+    appendColFolderInput.value = '';
+  });
+
+  function openAppendColConfigModal() {
+    const { newHeaders, newRows, fileName } = pendingAppendColData;
+    appendColFileName.textContent = `${fileName}（${newRows.length} 行 × ${newHeaders.length} 列）`;
+
+    appendColTargetMatch.innerHTML = newHeaders.map((h, i) =>
+      `<option value="${i}">${escapeHtml(h)}</option>`
+    ).join('');
+    appendColOrigMatch.innerHTML = excelHeaders.map((h, i) =>
+      `<option value="${i}">${escapeHtml(h)}</option>`
+    ).join('');
+
+    const commonCol = newHeaders.find(h => excelHeaders.includes(h));
+    if (commonCol) {
+      appendColTargetMatch.value = String(newHeaders.indexOf(commonCol));
+      appendColOrigMatch.value = String(excelHeaders.indexOf(commonCol));
+    }
+
+    let html = '';
+    newHeaders.forEach((h, idx) => {
+      const exists = excelHeaders.includes(h);
+      const badge = exists
+        ? '<span class="col-badge overwrite">已存在·覆盖</span>'
+        : '<span class="col-badge new">新列</span>';
+      html += `<div class="col-check-item">
+        <input type="checkbox" class="append-col-check" id="appendColChk_${idx}" data-idx="${idx}" checked>
+        <label for="appendColChk_${idx}">${escapeHtml(h)} ${badge}</label>
+      </div>`;
+    });
+    appendColList.innerHTML = html;
+    bindSelectAll(appendColSelectAll, appendColList, '.append-col-check');
+    appendColModalMask.style.display = 'flex';
+  }
+  function closeAppendColModal() {
+    appendColModalMask.style.display = 'none';
+    pendingAppendColData = null;
+  }
+  appendColCancelBtn.onclick = closeAppendColModal;
+  appendColModalMask.addEventListener('click', e => {
+    if (e.target === appendColModalMask) closeAppendColModal();
+  });
+  appendColConfirmBtn.onclick = () => {
+    if (!pendingAppendColData) return;
+    const targetMatchIdx = parseInt(appendColTargetMatch.value, 10);
+    const origMatchIdx = parseInt(appendColOrigMatch.value, 10);
+    if (isNaN(targetMatchIdx) || isNaN(origMatchIdx)) { alert('请选择匹配列'); return; }
+    const checks = appendColList.querySelectorAll('.append-col-check:checked');
+    if (!checks.length) { alert('请至少选择一列要追加的列'); return; }
+
+    const { newHeaders, newRows } = pendingAppendColData;
+    const selectedCols = Array.from(checks).map(el => {
+      const newIdx = parseInt(el.dataset.idx, 10);
+      return { name: newHeaders[newIdx], newIdx };
+    });
+
+    const newRowMap = new Map();
+    newRows.forEach(row => {
+      const key = String(row[targetMatchIdx] ?? '').trim();
+      if (key && !newRowMap.has(key)) newRowMap.set(key, row);
+    });
+
+    const targets = [];
+    const newCols = [];
+    selectedCols.forEach(({ name, newIdx }) => {
+      const existingIdx = excelHeaders.indexOf(name);
+      if (existingIdx !== -1) targets.push({ newIdx, targetIdx: existingIdx });
+      else newCols.push({ name, newIdx });
+    });
+    newCols.forEach(({ name, newIdx }) => {
+      const targetIdx = excelHeaders.length;
+      excelHeaders.push(name);
+      targets.push({ newIdx, targetIdx });
+    });
+    if (newCols.length > 0) {
+      excelRows.forEach(row => {
+        for (let i = 0; i < newCols.length; i++) row.push('');
+      });
+    }
+
+    let matchedCount = 0, updatedCells = 0;
+    excelRows.forEach(origRow => {
+      const key = String(origRow[origMatchIdx] ?? '').trim();
+      if (!key) return;
+      const newRow = newRowMap.get(key);
+      if (!newRow) return;
+      matchedCount++;
+      targets.forEach(({ newIdx, targetIdx }) => {
+        origRow[targetIdx] = newRow[newIdx] ?? '';
+        updatedCells++;
+      });
+    });
+    closeAppendColModal();
+    renderTable();
+    const notMatched = excelRows.length - matchedCount;
+    let msg = `数据追加（列）完成！\n\n匹配成功：${matchedCount} 行\n匹配失败（未找到）：${notMatched} 行\n更新单元格：${updatedCells} 个`;
+    if (newCols.length) msg += `\n新增列：${newCols.map(c => c.name).join('、')}`;
+    alert(msg);
+  };
+
+  /* ============================================================
+     数据追加（行）数据源选择
+     ============================================================ */
+  appendRowDataBtn.onclick = () => {
+    if (!excelHeaders.length) { alert('请先上传Excel文件'); return; }
+    appendRowSourceMask.style.display = 'flex';
+  };
+  appendRowSourceCancel.onclick = () => { appendRowSourceMask.style.display = 'none'; };
+  appendRowSourceMask.addEventListener('click', e => {
+    if (e.target === appendRowSourceMask) appendRowSourceMask.style.display = 'none';
+  });
+  appendRowPickExcel.onclick = () => {
+    appendRowSourceMask.style.display = 'none';
+    pickAndReadExcelFile(data => {
+      pendingAppendRowData = data;
+      openAppendRowConfigModal();
+    });
+  };
+  appendRowPickAndroid.onclick = () => {
+    appendRowSourceMask.style.display = 'none';
+    appendRowAndroidInput.value = '';
+    appendRowAndroidInput.click();
+  };
+  appendRowPickIOS.onclick = () => {
+    appendRowSourceMask.style.display = 'none';
+    appendRowAndroidInput.value = '';
+    appendRowAndroidInput.click();
+  };
+  appendRowAndroidInput.addEventListener('change', async () => {
+    const files = appendRowAndroidInput.files;
+    if (!files || !files.length) return;
+    const fileEntries = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const path = file.webkitRelativePath || file.name;
+      fileEntries.push({ file, path });
+    }
+    const { hasAndroid, hasIOSLproj, hasIOSXcstrings } = detectResourceType(fileEntries);
+    let data = null;
+    if (hasAndroid) data = await parseAndroidFilesForAppend(files);
+    else if (hasIOSXcstrings || hasIOSLproj) data = await parseIOSFilesForAppend(files);
+    if (!data) {
+      alert(
+        '未找到可识别的本地化资源文件。\n\n' +
+        '支持：\n' +
+        '· Android：values-*/strings.xml\n' +
+        '· iOS 旧规则：*.lproj/Localizable.strings\n' +
+        '· iOS 新规则：*.xcstrings'
+      );
+      appendRowAndroidInput.value = '';
+      return;
+    }
+    pendingAppendRowData = data;
+    openAppendRowConfigModal();
+    appendRowAndroidInput.value = '';
+  });
+
+  function openAppendRowConfigModal() {
+    const { newHeaders, newRows, fileName } = pendingAppendRowData;
+    appendRowFileName.textContent = `${fileName}（${newRows.length} 行 × ${newHeaders.length} 列）`;
+
+    let html = '';
+    newHeaders.forEach((h, idx) => {
+      const autoMatchIdx = excelHeaders.indexOf(h);
+      let options = `<option value="">不追加</option>`;
+      excelHeaders.forEach((h2, i) => {
+        const sel = (i === autoMatchIdx) ? ' selected' : '';
+        options += `<option value="${i}"${sel}>${escapeHtml(h2)}</option>`;
+      });
+      const matchedCls = autoMatchIdx >= 0 ? ' matched' : '';
+      html += `<div class="match-item">
+        <span class="match-target" title="${escapeHtml(h)}">${escapeHtml(h)}</span>
+        <span class="match-arrow">→</span>
+        <select class="match-select${matchedCls}" data-target-idx="${idx}">${options}</select>
+      </div>`;
+    });
+    appendRowMatchList.innerHTML = html;
+    appendRowMatchList.querySelectorAll('.match-select').forEach(sel => {
+      sel.onchange = () => {
+        sel.classList.toggle('matched', sel.value !== '');
+        rebuildAppendRowColList();
+        updateAppendRowPreview();
+      };
+    });
+    appendRowStartInput.value = '0';
+    appendRowStartInput.min = '0';
+    appendRowStartInput.max = String(Math.max(0, newRows.length - 1));
+    appendRowStartInput.oninput = updateAppendRowPreview;
+    appendRowStartInput.onchange = updateAppendRowPreview;
+    appendRowRangeTip.innerHTML =
+      `目标文件共 <strong>${newRows.length}</strong> 行` +
+      `（有效索引 0 ~ ${Math.max(0, newRows.length - 1)}）。` +
+      `例：填 100，则从第 100 行到最后一行追加。`;
+    rebuildAppendRowColList();
+    updateAppendRowPreview();
+    appendRowModalMask.style.display = 'flex';
+  }
+
+  function rebuildAppendRowColList() {
+    const { newHeaders } = pendingAppendRowData;
+    const selects = appendRowMatchList.querySelectorAll('.match-select');
+    const matched = [];
+    selects.forEach(sel => {
+      if (sel.value === '') return;
+      const targetIdx = parseInt(sel.dataset.targetIdx, 10);
+      matched.push({ idx: targetIdx, name: newHeaders[targetIdx] });
+    });
+    let html = '';
+    if (matched.length === 0) {
+      html = '<div style="padding:10px;color:#94a3b8;font-size:13px;">请先在上方为至少一列设置匹配规则</div>';
+    } else {
+      matched.forEach(({ idx, name }) => {
+        html += `<div class="col-check-item">
+          <input type="checkbox" class="append-row-check" id="appendRowChk_${idx}" data-idx="${idx}" checked>
+          <label for="appendRowChk_${idx}">${escapeHtml(name)}</label>
+        </div>`;
+      });
+    }
+    appendRowColList.innerHTML = html;
+    if (matched.length > 0) bindSelectAll(appendRowSelectAll, appendRowColList, '.append-row-check');
+  }
+
+  function updateAppendRowPreview() {
+    if (!pendingAppendRowData) { appendRowPreview.textContent = '—'; return; }
+    const { newHeaders, newRows } = pendingAppendRowData;
+    const startRow = parseInt(appendRowStartInput.value.trim(), 10);
+    const selects = appendRowMatchList.querySelectorAll('.match-select');
+    let firstMatch = null;
+    for (const sel of selects) {
+      if (sel.value !== '') {
+        const targetIdx = parseInt(sel.dataset.targetIdx, 10);
+        firstMatch = { targetIdx, name: newHeaders[targetIdx] };
+        break;
+      }
+    }
+    if (!firstMatch) {
+      appendRowPreview.innerHTML = '<span class="preview-label">追加预览：</span>请先设置至少一列匹配规则';
+      return;
+    }
+    if (isNaN(startRow) || startRow < 0) {
+      appendRowPreview.innerHTML = '<span class="preview-label">追加预览：</span>请输入有效的起始行';
+      return;
+    }
+    if (startRow >= newRows.length) {
+      appendRowPreview.innerHTML = `<span class="preview-label">追加预览：</span>起始行超出范围（目标文件共 ${newRows.length} 行）`;
+      return;
+    }
+    const row = newRows[startRow];
+    const value = String(row[firstMatch.targetIdx] ?? '').trim();
+    appendRowPreview.innerHTML =
+      `<span class="preview-label">第 ${startRow} 行追加预览：</span>` +
+      `<span class="preview-value">${escapeHtml(firstMatch.name)}：${escapeHtml(value) || '（空）'}</span>`;
+  }
+
+  function closeAppendRowModal() {
+    appendRowModalMask.style.display = 'none';
+    pendingAppendRowData = null;
+  }
+  appendRowCancelBtn.onclick = closeAppendRowModal;
+  appendRowModalMask.addEventListener('click', e => {
+    if (e.target === appendRowModalMask) closeAppendRowModal();
+  });
+  appendRowConfirmBtn.onclick = () => {
+    if (!pendingAppendRowData) return;
+    const { newHeaders, newRows } = pendingAppendRowData;
+    const selects = appendRowMatchList.querySelectorAll('.match-select');
+    const mapping = [];
+    selects.forEach(sel => {
+      const targetIdx = parseInt(sel.dataset.targetIdx, 10);
+      if (sel.value === '') return;
+      const origIdx = parseInt(sel.value, 10);
+      mapping.push({ targetIdx, origIdx });
+    });
+    if (!mapping.length) { alert('请至少为一列设置匹配规则'); return; }
+
+    const checks = appendRowColList.querySelectorAll('.append-row-check:checked');
+    if (!checks.length) { alert('请至少选择一列要追加的列'); return; }
+    const selectedTargetIdx = new Set(Array.from(checks).map(el => parseInt(el.dataset.idx, 10)));
+    const effectiveMapping = mapping.filter(m => selectedTargetIdx.has(m.targetIdx));
+    if (!effectiveMapping.length) { alert('被勾选的列中没有已设置匹配规则的列'); return; }
+
+    const startRow = parseInt(appendRowStartInput.value, 10);
+    if (isNaN(startRow) || startRow < 0) { alert('起始行非法'); return; }
+    if (startRow >= newRows.length) { alert(`起始行超出范围（目标文件共 ${newRows.length} 行）`); return; }
+
+    const rowsToAdd = newRows.slice(startRow);
+    let addedRows = 0;
+    rowsToAdd.forEach(tRow => {
+      const newRow = Array(excelHeaders.length).fill('');
+      effectiveMapping.forEach(({ targetIdx, origIdx }) => {
+        newRow[origIdx] = tRow[targetIdx] ?? '';
+      });
+      excelRows.push(newRow);
+      addedRows++;
+    });
+    closeAppendRowModal();
+    renderTable();
+    alert(`数据追加（行）完成！\n\n从目标文件第 ${startRow} 行开始\n已追加 ${addedRows} 行数据\n匹配列数：${effectiveMapping.length} 列`);
+  };
+
+  /* ============================================================
+     导入 Android 资源
+     ============================================================ */
+  async function handleAndroidFolderImport(fileEntries) {
+    if (hasData) { if (!confirm('导入资源将替换当前表格内容，确定继续吗？')) return; }
+    const langFiles = [];
+    for (const { file, path } of fileEntries) {
+      const m = path.match(/(?:^|\/)(values(?:-[^/]+)?)\/strings\.xml$/);
+      if (!m) continue;
+      const dirName = m[1];
+      const langCode = dirName === 'values' ? 'en' : dirName.slice('values-'.length);
+      langFiles.push({ langCode, dirName, file });
+    }
+    if (!langFiles.length) { alert('未找到任何 values / values-*/strings.xml 文件'); return; }
+    langFiles.sort((a, b) => {
+      if (a.dirName === 'values') return -1;
+      if (b.dirName === 'values') return 1;
+      return a.dirName.localeCompare(b.dirName);
+    });
+    const data = await buildDataFromResourceFiles(langFiles, 'android');
+    if (!data) { alert('未解析到任何 string 条目'); return; }
+
+    excelHeaders = data.newHeaders;
+    excelRows = data.newRows;
+    hasData = true;
+    originalFileName = 'android_resources';
+    fileInfo.style.display = 'block';
+    fileInfo.textContent = `已加载 Android 资源 ｜ ${data.newRows.length} 个 key × ${data.newHeaders.length - 1} 种语言`;
+    fileCard.classList.add('hidden');
+    tableCard.style.display = 'flex';
+    renderTable();
+    alert(`导入完成！\n\n共 ${data.newRows.length} 个 key，${data.newHeaders.length - 1} 种语言\n语言列：${data.newHeaders.slice(1).join('、')}`);
+  }
+
+  /* ============================================================
+     导入 iOS 资源 - 旧规则（.lproj/Localizable.strings）
+     ============================================================ */
+  async function handleIOSFolderImport(fileEntries) {
+    if (hasData) { if (!confirm('导入 iOS 资源将替换当前表格内容，确定继续吗？')) return; }
+    const langFiles = [];
+    for (const { file, path } of fileEntries) {
+      const m = path.match(/(?:^|\/)([^/]+)\.lproj\/Localizable\.strings$/);
+      if (!m) continue;
+      const langName = m[1];
+      langFiles.push({ langCode: langName, dirName: langName + '.lproj', file });
+    }
+    if (!langFiles.length) { alert('未找到任何 *.lproj/Localizable.strings 文件'); return; }
+    langFiles.sort((a, b) => a.langCode.localeCompare(b.langCode));
+    const data = await buildDataFromResourceFiles(langFiles, 'ios');
+    if (!data) { alert('未解析到任何字符串条目'); return; }
+
+    excelHeaders = data.newHeaders;
+    excelRows = data.newRows;
+    hasData = true;
+    originalFileName = 'ios_resources';
+    fileInfo.style.display = 'block';
+    fileInfo.textContent = `已加载 iOS 资源（.lproj）｜ ${data.newRows.length} 个 key × ${data.newHeaders.length - 1} 种语言`;
+    fileCard.classList.add('hidden');
+    tableCard.style.display = 'flex';
+    renderTable();
+    alert(`导入完成！（.lproj 旧规则）\n\n共 ${data.newRows.length} 个 key，${data.newHeaders.length - 1} 种语言\n语言列：${data.newHeaders.slice(1).join('、')}`);
+  }
+
+  /* ============================================================
+     导入 iOS 资源 - 新规则（.xcstrings）
+     ============================================================ */
+  async function handleIOSXcstringsFolderImport(fileEntries) {
+    if (hasData) { if (!confirm('导入 iOS 资源将替换当前表格内容，确定继续吗？')) return; }
+    const data = await buildDataFromXcstrings(fileEntries);
+    if (!data) { alert('未解析到任何字符串条目（.xcstrings 文件可能无效或为空）'); return; }
+
+    excelHeaders = data.newHeaders;
+    excelRows = data.newRows;
+    hasData = true;
+    originalFileName = 'ios_resources';
+
+    const docNameColIdx = excelHeaders.indexOf('iOS DocumentName');
+    const groupSet = new Set();
+    if (docNameColIdx !== -1) {
+      excelRows.forEach(r => {
+        const v = String(r[docNameColIdx] ?? '').trim();
+        if (v) groupSet.add(v);
+      });
+    }
+    const langCount = excelHeaders.length - 1 - (docNameColIdx !== -1 ? 1 : 0);
+
+    fileInfo.style.display = 'block';
+    fileInfo.textContent =
+      `已加载 iOS String Catalog 资源 ｜ ${data.newRows.length} 个 key ｜ ` +
+      `${groupSet.size} 个配置 ｜ ${langCount} 种语言`;
+    fileCard.classList.add('hidden');
+    tableCard.style.display = 'flex';
+    renderTable();
+    alert(
+      `导入完成！（.xcstrings 新规则）\n\n` +
+      `共 ${data.newRows.length} 个 key，${langCount} 种语言\n` +
+      `配置文件数：${groupSet.size} 个\n` +
+      (groupSet.size ? `配置：${Array.from(groupSet).join('、')}\n` : '') +
+      `语言列：${excelHeaders.filter((h, i) => i !== docNameColIdx && h !== 'Key' && i > 0).join('、')}`
+    );
+  }
+
+  /* ============================================================
+     导出 Android ZIP
+     ============================================================ */
+  androidExportBtn.onclick = () => {
+    if (!excelHeaders.length) { alert('请先加载数据'); return; }
+    const headerLower = excelHeaders.map(h => String(h).toLowerCase().trim());
+    let keyColIdx = -1;
+    for (const target of ['android key', 'key', 'name']) {
+      const idx = headerLower.indexOf(target);
+      if (idx !== -1) { keyColIdx = idx; break; }
+    }
+    if (keyColIdx === -1) keyColIdx = 0;
+
+    androidKeyColSelect.innerHTML = excelHeaders.map((h, i) =>
+      `<option value="${i}"${i === keyColIdx ? ' selected' : ''}>${escapeHtml(h)}</option>`
+    ).join('');
+    rebuildAndroidExportList();
+    androidKeyColSelect.onchange = rebuildAndroidExportList;
+    androidExportModalMask.style.display = 'flex';
+  };
+  function rebuildAndroidExportList() {
+    const keyColIdx = parseInt(androidKeyColSelect.value, 10);
+    let html = '';
+    let hasLang = false;
+    excelHeaders.forEach((h, i) => {
+      if (i === keyColIdx) return;
+      // 跳过 iOS DocumentName 列（不参与 Android 语言列导出）
+      if (String(h).toLowerCase().trim() === 'ios documentname') return;
+      hasLang = true;
+      const folder = langHeaderToAndroidFolder(h);
+      html += `<div class="col-check-item">
+        <input type="checkbox" class="android-export-check" id="androidExp_${i}" data-idx="${i}" data-folder="${escapeHtml(folder)}" checked>
+        <label for="androidExp_${i}">${escapeHtml(h)} <span class="col-badge">${escapeHtml(folder)}</span></label>
+      </div>`;
+    });
+    if (!hasLang) html = '<div style="padding:10px;color:#94a3b8;font-size:13px;">没有可导出的语言列</div>';
+    androidExportList.innerHTML = html;
+    if (hasLang) bindSelectAll(androidExportSelectAll, androidExportList, '.android-export-check');
+  }
+  function closeAndroidExportModal() { androidExportModalMask.style.display = 'none'; }
+  androidExportCancel.onclick = closeAndroidExportModal;
+  androidExportModalMask.addEventListener('click', e => {
+    if (e.target === androidExportModalMask) closeAndroidExportModal();
+  });
+  androidExportConfirm.onclick = async () => {
+    const keyColIdx = parseInt(androidKeyColSelect.value, 10);
+    const checks = androidExportList.querySelectorAll('.android-export-check:checked');
+    if (!checks.length) { alert('请至少选择一个语言列'); return; }
+    const langCols = Array.from(checks).map(el => ({
+      idx: parseInt(el.dataset.idx, 10),
+      folder: el.dataset.folder,
+    }));
+    const keyOrder = [];
+    const keySet = new Set();
+    excelRows.forEach(row => {
+      const key = String(row[keyColIdx] ?? '').trim();
+      if (key && !keySet.has(key)) { keySet.add(key); keyOrder.push(key); }
+    });
+    keyOrder.sort();
+    if (!keyOrder.length) { alert('没有可导出的 key'); return; }
+
+    const folderData = {};
+    const folderOrder = [];
+    langCols.forEach(({ folder }) => {
+      if (!folderData[folder]) { folderData[folder] = {}; folderOrder.push(folder); }
+    });
+    excelRows.forEach(row => {
+      const key = String(row[keyColIdx] ?? '').trim();
+      if (!key) return;
+      langCols.forEach(({ idx, folder }) => {
+        const val = String(row[idx] ?? '').trim();
+        if (val) folderData[folder][key] = convertIosPlaceholder(val);
+      });
+    });
+
+    const zip = new JSZip();
+    let folderCount = 0, stringCount = 0;
+    folderOrder.forEach(folder => {
+      const data = folderData[folder];
+      const keysInFolder = keyOrder.filter(k => k in data);
+      if (!keysInFolder.length) return;
+      let xml = '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n';
+      keysInFolder.forEach(key => {
+        xml += `    <string name="${escapeXmlAttr(key)}">${escapeXmlText(data[key])}</string>\n`;
+        stringCount++;
+      });
+      xml += '</resources>\n';
+      zip.file(`${folder}/strings.xml`, xml);
+      folderCount++;
+    });
+    if (!folderCount) { alert('没有可导出的数据'); return; }
+
+    let blob;
+    try { blob = await zip.generateAsync({ type: 'blob' }); }
+    catch (e) { alert('生成 ZIP 失败：' + e.message); return; }
+    const fileName = `android_strings_${timestampSuffix()}.zip`;
+    downloadBlob(blob, fileName);
+    closeAndroidExportModal();
+    alert(`导出完成！\n\nZIP 文件：${fileName}\n语言文件夹：${folderCount} 个\n<string> 条目：${stringCount} 条`);
+  };
+
+  /* ============================================================
+     导出 iOS 资源
+     - 存在 iOS DocumentName 列 → 按该列分组，每组生成一个 .xcstrings 文件 → 打包 ZIP
+     - 否则 → 传统 .lproj/Localizable.strings 打包 ZIP
+     ============================================================ */
+  iOSExportBtn.onclick = () => {
+    if (!excelHeaders.length) { alert('请先加载数据'); return; }
+
+    const headerLower = excelHeaders.map(h => String(h).toLowerCase().trim());
+    let keyColIdx = -1;
+    for (const target of ['android key', 'key', 'name']) {
+      const idx = headerLower.indexOf(target);
+      if (idx !== -1) { keyColIdx = idx; break; }
+    }
+    if (keyColIdx === -1) keyColIdx = 0;
+
+    iOSKeyColSelect.innerHTML = excelHeaders.map((h, i) =>
+      `<option value="${i}"${i === keyColIdx ? ' selected' : ''}>${escapeHtml(h)}</option>`
+    ).join('');
+    rebuildIOSExportList();
+    iOSKeyColSelect.onchange = rebuildIOSExportList;
+    iOSExportModalMask.style.display = 'flex';
+  };
+
+  function findIOSDocumentNameCol() {
+    return excelHeaders.findIndex(h =>
+      String(h).toLowerCase().trim() === 'ios documentname'
+    );
+  }
+
+  function collectIOSDocumentGroups(docNameColIdx, keyColIdx) {
+    if (docNameColIdx === -1) return [];
+    const groupMap = new Map();
+    const order = [];
+    excelRows.forEach((row, rowIdx) => {
+      const key = String(row[keyColIdx] ?? '').trim();
+      if (!key) return;
+      const rawName = String(row[docNameColIdx] ?? '').trim();
+      if (!rawName) return;
+      let name = rawName.replace(/\.xcstrings$/i, '').replace(/[\/\\]/g, '_');
+      if (!name) name = 'Localizable';
+      if (!groupMap.has(name)) {
+        groupMap.set(name, { name, rowIndexes: [] });
+        order.push(name);
+      }
+      groupMap.get(name).rowIndexes.push(rowIdx);
+    });
+    return order.map(n => groupMap.get(n));
+  }
+
+  function rebuildIOSExportList() {
+    const keyColIdx = parseInt(iOSKeyColSelect.value, 10);
+    const docNameColIdx = findIOSDocumentNameCol();
+    const useXCStrings = docNameColIdx !== -1;
+
+    if (useXCStrings) {
+      const groups = collectIOSDocumentGroups(docNameColIdx, keyColIdx);
+      if (groups.length > 0) {
+        iOSExportModeTip.innerHTML =
+          `检测到 <strong>iOS DocumentName</strong> 列 → String Catalog 单文件模式` +
+          `<span class="xcstrings-badge">Xcode 15+</span><br>` +
+          `共 <strong>${groups.length}</strong> 个配置文件，将打包为 ZIP 下载。`;
+        let groupHtml = '';
+        groups.forEach(g => {
+          groupHtml += `<div class="group-item">
+            <span class="group-name">${escapeHtml(g.name)}.xcstrings</span>
+            <span class="group-count">${g.rowIndexes.length} 条</span>
+          </div>`;
+        });
+        iOSExportGroupList.innerHTML = groupHtml;
+        iOSExportGroupList.style.display = 'block';
+      } else {
+        iOSExportModeTip.innerHTML =
+          `检测到 <strong>iOS DocumentName</strong> 列，但未找到有效分组数据（需非空 key 与非空文件名）。`;
+        iOSExportGroupList.style.display = 'none';
+      }
+    } else {
+      iOSExportModeTip.innerHTML =
+        `未检测到 <strong>iOS DocumentName</strong> 列 → 按传统 <strong>.lproj/Localizable.strings</strong> 模式导出为 ZIP` +
+        `<br>如需使用 String Catalog 模式，请添加列标题为 <strong>iOS DocumentName</strong> 的列并填写文件名。`;
+      iOSExportGroupList.style.display = 'none';
+    }
+
+    let html = '';
+    let hasLang = false;
+    excelHeaders.forEach((h, i) => {
+      if (i === keyColIdx) return;
+      if (i === docNameColIdx) return;
+      hasLang = true;
+      const lproj = langHeaderToIOSLproj(h);
+      const langCode = langHeaderToIOSLangCode(h);
+      const badge = useXCStrings ? langCode : lproj;
+      html += `<div class="col-check-item">
+        <input type="checkbox" class="ios-export-check" id="iOSExp_${i}"
+          data-idx="${i}" data-lproj="${escapeHtml(lproj)}" data-langcode="${escapeHtml(langCode)}" checked>
+        <label for="iOSExp_${i}">${escapeHtml(h)} <span class="col-badge ios">${escapeHtml(badge)}</span></label>
+      </div>`;
+    });
+    if (!hasLang) html = '<div style="padding:10px;color:#94a3b8;font-size:13px;">没有可导出的语言列</div>';
+    iOSExportList.innerHTML = html;
+    if (hasLang) bindSelectAll(iOSExportSelectAll, iOSExportList, '.ios-export-check');
+  }
+
+  function closeIOSExportModal() { iOSExportModalMask.style.display = 'none'; }
+  iOSExportCancel.onclick = closeIOSExportModal;
+  iOSExportModalMask.addEventListener('click', e => {
+    if (e.target === iOSExportModalMask) closeIOSExportModal();
+  });
+
+  iOSExportConfirm.onclick = async () => {
+    const keyColIdx = parseInt(iOSKeyColSelect.value, 10);
+    const checks = iOSExportList.querySelectorAll('.ios-export-check:checked');
+    if (!checks.length) { alert('请至少选择一个语言列'); return; }
+
+    const langCols = Array.from(checks).map(el => ({
+      idx: parseInt(el.dataset.idx, 10),
+      lproj: el.dataset.lproj,
+      langCode: el.dataset.langcode || el.dataset.lproj.replace(/\.lproj$/i, ''),
+    }));
+
+    const docNameColIdx = findIOSDocumentNameCol();
+
+    const keyOrder = [];
+    const keySet = new Set();
+    excelRows.forEach(row => {
+      const key = String(row[keyColIdx] ?? '').trim();
+      if (key && !keySet.has(key)) { keySet.add(key); keyOrder.push(key); }
+    });
+    keyOrder.sort();
+    if (!keyOrder.length) { alert('没有可导出的 key'); return; }
+
+    /* 模式 A：String Catalog（.xcstrings）多文件分组 */
+    if (docNameColIdx !== -1) {
+      const groups = collectIOSDocumentGroups(docNameColIdx, keyColIdx);
+      if (!groups.length) { alert('未找到有效的 iOS DocumentName 分组'); return; }
+
+      const langCodes = langCols.map(lc => lc.langCode);
+      let sourceLang = 'en';
+      if (!langCodes.includes('en') && langCodes.length > 0) sourceLang = langCodes[0];
+
+      const zip = new JSZip();
+      let totalStrings = 0;
+
+      groups.forEach(group => {
+        const xcstrings = {
+          sourceLanguage: sourceLang,
+          strings: {},
+          version: '1.0',
+        };
+        group.rowIndexes.forEach(rowIdx => {
+          const row = excelRows[rowIdx];
+          const key = String(row[keyColIdx] ?? '').trim();
+          if (!key) return;
+          const localizations = {};
+          langCols.forEach(({ idx, langCode }) => {
+            const val = String(row[idx] ?? '').trim();
+            if (val) {
+              localizations[langCode] = {
+                stringUnit: { state: 'translated', value: val },
+              };
+            }
+          });
+          if (Object.keys(localizations).length > 0) {
+            xcstrings.strings[key] = { localizations };
+            totalStrings++;
+          }
+        });
+        const jsonStr = JSON.stringify(xcstrings, null, 2);
+        zip.file(`${group.name}.xcstrings`, jsonStr);
+      });
+
+      if (totalStrings === 0) { alert('没有可导出的数据'); return; }
+
+      let blob;
+      try { blob = await zip.generateAsync({ type: 'blob' }); }
+      catch (e) { alert('生成 ZIP 失败：' + e.message); return; }
+
+      const fileName = `ios_xcstrings_${timestampSuffix()}.zip`;
+      downloadBlob(blob, fileName);
+      closeIOSExportModal();
+      alert(
+        `导出完成！（String Catalog 模式）\n\n` +
+        `ZIP 文件：${fileName}\n` +
+        `配置文件数：${groups.length} 个\n` +
+        `源语言：${sourceLang}\n` +
+        `语言数：${langCols.length}\n` +
+        `字符串条目：${totalStrings} 条\n\n` +
+        `分组：${groups.map(g => g.name).join('、')}`
+      );
+      return;
+    }
+
+    /* 模式 B：传统 .lproj/Localizable.strings */
+    const folderData = {};
+    const folderOrder = [];
+    langCols.forEach(({ lproj }) => {
+      if (!folderData[lproj]) { folderData[lproj] = {}; folderOrder.push(lproj); }
+    });
+    excelRows.forEach(row => {
+      const key = String(row[keyColIdx] ?? '').trim();
+      if (!key) return;
+      langCols.forEach(({ idx, lproj }) => {
+        const val = String(row[idx] ?? '').trim();
+        if (val) folderData[lproj][key] = val;
+      });
+    });
+
+    const zip = new JSZip();
+    let folderCount = 0, stringCount = 0;
+    folderOrder.forEach(lproj => {
+      const data = folderData[lproj];
+      const keysInFolder = keyOrder.filter(k => k in data);
+      if (!keysInFolder.length) return;
+      let content = '';
+      keysInFolder.forEach(key => {
+        content += `"${escapeIOSString(key)}" = "${escapeIOSString(data[key])}";\n`;
+        stringCount++;
+      });
+      zip.file(`${lproj}/Localizable.strings`, content);
+      folderCount++;
+    });
+
+    if (!folderCount) { alert('没有可导出的数据'); return; }
+
+    let blob;
+    try { blob = await zip.generateAsync({ type: 'blob' }); }
+    catch (e) { alert('生成 ZIP 失败：' + e.message); return; }
+
+    const fileName = `ios_strings_${timestampSuffix()}.zip`;
+    downloadBlob(blob, fileName);
+    closeIOSExportModal();
+    alert(
+      `导出完成！（.lproj 模式）\n\n` +
+      `ZIP 文件：${fileName}\n` +
+      `语言文件夹：${folderCount} 个\n` +
+      `字符串条目：${stringCount} 条`
+    );
+  };
+
+  /* ============================================================
+     全选 / 全不选 绑定工具
+     ============================================================ */
+  function bindSelectAll(selectAllEl, containerEl, checkboxSelector) {
+    const allChecks = containerEl.querySelectorAll(checkboxSelector);
+    selectAllEl.checked = true;
+    selectAllEl.indeterminate = false;
+    selectAllEl.onchange = () => {
+      allChecks.forEach(c => { c.checked = selectAllEl.checked; });
+      selectAllEl.indeterminate = false;
+    };
+    allChecks.forEach(c => {
+      c.onchange = () => {
+        const total = allChecks.length;
+        const checked = containerEl.querySelectorAll(checkboxSelector + ':checked').length;
+        selectAllEl.checked = (checked === total);
+        selectAllEl.indeterminate = (checked > 0 && checked < total);
+      };
+    });
+  }
+
+  /* ===================== 导出列选择（含全选） ===================== */
+  function openExportColModal() {
+    if (!excelHeaders.length) return;
+    let html = '';
+    excelHeaders.forEach((h, idx) => {
+      html += `<div class="col-check-item">
+        <input type="checkbox" class="col-export-check" id="exportCol_${idx}" data-idx="${idx}" checked>
+        <label for="exportCol_${idx}">${escapeHtml(h)}</label>
+      </div>`;
+    });
+    colCheckWrap.innerHTML = html;
+    bindSelectAll(exportSelectAll, colCheckWrap, '.col-export-check');
+    exportColModalMask.style.display = 'flex';
+  }
+  function closeExportColModal() { exportColModalMask.style.display = 'none'; }
+  exportColCancel.onclick = closeExportColModal;
+  exportColConfirm.onclick = () => {
+    const checks = colCheckWrap.querySelectorAll('.col-export-check:checked');
+    const selected = Array.from(checks).map(el => parseInt(el.dataset.idx, 10));
+    if (selected.length === 0) { alert('至少选择一列进行导出'); return; }
+    closeExportColModal();
+    downloadExcelFile(selected);
+  };
+  exportColModalMask.addEventListener('click', e => { if (e.target === exportColModalMask) closeExportColModal(); });
+
+  /* ===================== 行编辑弹窗 ===================== */
+  function openModal(rowIndex) {
+    currentRowIndex = rowIndex;
+    const rowData = excelRows[rowIndex];
+    modalTitle.textContent = `编辑第 ${rowIndex + 1} 行`;
+    let html = '';
+    excelHeaders.forEach((header, colIdx) => {
+      const val = rowData[colIdx] ?? '';
+      html += `
+        <div class="modal-field">
+          <label>${escapeHtml(header || '列' + (colIdx + 1))}</label>
+          <input type="text" data-col="${colIdx}" value="${escapeHtml(val)}">
+        </div>
+      `;
+    });
+    modalFields.innerHTML = html;
+    editModalMask.style.display = 'flex';
+    const first = modalFields.querySelector('input');
+    if (first) first.focus();
+  }
+  function closeModal() {
+    editModalMask.style.display = 'none';
+    currentRowIndex = null;
+  }
+  saveBtn.onclick = () => {
+    if (currentRowIndex === null) return;
+    const inputs = modalFields.querySelectorAll('input');
+    const newRow = [];
+    inputs.forEach(inp => { newRow[parseInt(inp.dataset.col, 10)] = inp.value; });
+    excelRows[currentRowIndex] = newRow;
+    closeModal();
+    renderTable();
+  };
+  delBtn.onclick = () => {
+    if (currentRowIndex === null) return;
+    if (confirm(`确定删除第 ${currentRowIndex + 1} 行吗？此操作不可撤销。`)) {
+      excelRows.splice(currentRowIndex, 1);
+      closeModal();
+      renderTable();
+    }
+  };
+  cancelBtn.onclick = closeModal;
+  editModalMask.addEventListener('click', e => {
+    if (e.target === editModalMask) closeModal();
+  });
+
+  exportBtn.onclick = () => openExportColModal();
+</script>
+</body>
+</html>
