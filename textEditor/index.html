@@ -6,16 +6,40 @@
   <title>纯文本编辑器 · 预览 / 编辑 / 原样导出</title>
   <style>
     :root {
-      --bg: #0d1117;
-      --panel: #161b22;
-      --panel2: #1c2128;
-      --border: #30363d;
-      --text: #c9d1d9;
-      --muted: #8b949e;
-      --accent: #58a6ff;
-      --green: #3fb950;
-      --yellow: #d29922;
-      --red: #f85149;
+      color-scheme: light;
+
+      --bg: #ffffff;
+      --surface: #f6f8fa;
+      --surface-2: #ffffff;
+      --surface-3: #eef1f5;
+      --border: #e4e8ee;
+      --border-2: #d3d9e0;
+
+      --text: #1c2331;
+      --text-2: #57606e;
+      --text-3: #8792a2;
+
+      --accent: #2563eb;
+      --accent-hi: #3b82f6;
+      --accent-soft: rgba(37, 99, 235, .10);
+
+      --green: #1a7f37;
+      --yellow: #9a6700;
+      --red: #cf222e;
+
+      /* 语法配色（参考 GitHub Light） */
+      --tok-comment: #6e7781;
+      --tok-keyword: #cf222e;
+      --tok-string:  #0a3069;
+      --tok-number:  #0550ae;
+      --tok-literal: #0550ae;
+      --tok-func:    #8250df;
+      --tok-tag:     #116329;
+      --tok-punct:   #57606e;
+
+      --r-lg: 12px;
+      --r-md: 9px;
+      --r-sm: 7px;
     }
 
     * { box-sizing: border-box; }
@@ -32,6 +56,7 @@
       font-size: 14px;
       overflow: hidden;
       -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
     }
 
     .app {
@@ -47,104 +72,184 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 9px 14px;
-      background: var(--panel);
+      padding: 10px 14px;
+      background: var(--surface-2);
       border-bottom: 1px solid var(--border);
       flex-wrap: wrap;
     }
 
     .brand {
-      font-weight: 700;
-      font-size: 14px;
-      letter-spacing: .3px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
       white-space: nowrap;
+      margin-right: 4px;
+    }
+
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      flex: none;
+      display: grid;
+      place-items: center;
+      border-radius: var(--r-md);
+      background: linear-gradient(160deg, #dbeafe, #eff6ff);
+      border: 1px solid #c7ddfd;
+      color: var(--accent);
+    }
+    .brand-mark svg { width: 16px; height: 16px; }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
       line-height: 1.25;
     }
-    .brand small {
-      display: block;
-      font-weight: 400;
+    .brand-text b {
+      font-size: 13.5px;
+      font-weight: 650;
+      letter-spacing: .3px;
+      color: var(--text);
+    }
+    .brand-text small {
       font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 0;
+      font-weight: 400;
+      color: var(--text-3);
+      letter-spacing: .1px;
     }
 
     .spacer { flex: 1 1 auto; }
 
     .btn {
       flex: none;
-      padding: 7px 13px;
-      border-radius: 7px;
-      border: 1px solid var(--border);
-      background: #21262d;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      height: 34px;
+      padding: 0 13px;
+      border-radius: var(--r-md);
+      border: 1px solid var(--border-2);
+      background: var(--surface-2);
       color: var(--text);
       font-size: 13px;
+      font-weight: 500;
       font-family: inherit;
       cursor: pointer;
-      transition: background .15s, border-color .15s, opacity .15s;
       white-space: nowrap;
+      transition: background .16s, border-color .16s, color .16s,
+                  box-shadow .16s, transform .08s;
     }
-    .btn:hover:not(:disabled) { background: #30363d; border-color: #484f58; }
+    .btn svg {
+      width: 15px;
+      height: 15px;
+      flex: none;
+      opacity: .8;
+    }
+    .btn:hover:not(:disabled) {
+      background: var(--surface-3);
+      border-color: #c3cad4;
+    }
     .btn:active:not(:disabled) { transform: translateY(1px); }
-    .btn:disabled { opacity: .35; cursor: not-allowed; }
+    .btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .btn:disabled {
+      opacity: .38;
+      cursor: not-allowed;
+    }
 
     .btn.primary {
-      background: #1f6feb;
-      border-color: #1f6feb;
+      background: linear-gradient(180deg, #3b82f6, #2563eb);
+      border-color: #2563eb;
       color: #fff;
       font-weight: 600;
+      box-shadow: 0 1px 2px rgba(37, 99, 235, .22);
     }
-    .btn.primary:hover:not(:disabled) { background: #388bfd; border-color: #388bfd; }
+    .btn.primary svg { opacity: 1; }
+    .btn.primary:hover:not(:disabled) {
+      background: linear-gradient(180deg, #4b8ef7, #2f74ee);
+      border-color: #2f74ee;
+      box-shadow: 0 2px 9px rgba(37, 99, 235, .28);
+    }
 
-    .btn.ghost { background: transparent; }
+    .btn.ghost {
+      background: transparent;
+      border-color: transparent;
+      color: var(--text-2);
+    }
+    .btn.ghost:hover:not(:disabled) {
+      background: var(--surface-3);
+      border-color: var(--border);
+      color: var(--text);
+    }
 
     /* ---------- 选项条 ---------- */
     .options-bar {
       flex: none;
       display: flex;
       align-items: center;
-      gap: 16px;
-      padding: 7px 14px;
-      background: var(--panel2);
+      gap: 18px;
+      padding: 9px 16px;
+      background: var(--surface);
       border-bottom: 1px solid var(--border);
       flex-wrap: wrap;
       font-size: 12px;
-      color: var(--muted);
+      color: var(--text-2);
     }
 
     .opt {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
       white-space: nowrap;
+    }
+    .opt > span {
+      font-size: 11.5px;
+      color: var(--text-3);
+      letter-spacing: .2px;
     }
 
     .opt select {
-      background: #21262d;
+      appearance: none;
+      -webkit-appearance: none;
+      background-color: var(--surface-2);
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.6 6 7.6 9 4.6' fill='none' stroke='%2357606e' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 9px center;
+      background-size: 12px;
       color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 4px 8px;
-      font-size: 12px;
+      border: 1px solid var(--border-2);
+      border-radius: var(--r-sm);
+      padding: 5px 28px 5px 10px;
+      font-size: 12.5px;
       font-family: inherit;
       outline: none;
       cursor: pointer;
-      max-width: 220px;
+      max-width: 210px;
+      transition: border-color .15s, background-color .15s, box-shadow .15s;
     }
-    .opt select:focus { border-color: var(--accent); }
+    .opt select:hover:not(:disabled) {
+      border-color: #b9c1cc;
+    }
+    .opt select:focus-visible {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
     .opt select:disabled { opacity: .4; cursor: not-allowed; }
 
     .opt-hint {
       font-size: 11.5px;
-      color: var(--muted);
-      opacity: .85;
+      color: var(--text-3);
       flex: 1 1 auto;
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      text-align: right;
     }
 
-    /* ---------- 编辑区 ---------- */
+    /* ---------- 编辑区（高亮层 + 透明 textarea） ---------- */
     .main {
       position: relative;
       flex: 1 1 auto;
@@ -155,30 +260,92 @@
     .editor-wrap {
       position: absolute;
       inset: 0;
-    }
-
-    #editor {
-      display: block;
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      border: 0;
-      outline: 0;
-      resize: none;
-      padding: 16px 18px 28px;
+      overflow: hidden;
       background: var(--bg);
-      color: var(--text);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-      font-size: 13.5px;
-      line-height: 1.68;
-      tab-size: 4;
-      white-space: pre-wrap;
-      word-break: break-word;
-      overflow: auto;
-      caret-color: var(--accent);
+      animation: fadeIn .18s ease;
     }
-    #editor::selection { background: #2f4a7a; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+    /* 共用的排版参数：两边必须完全一致 */
+    #editor,
+    #hl {
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      padding: 22px 26px 48px;
+      border: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas,
+                   "Liberation Mono", "Courier New", monospace;
+      font-size: 13.5px;
+      line-height: 1.78;
+      tab-size: 4;
+      -moz-tab-size: 4;
+      letter-spacing: normal;
+      word-spacing: normal;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      text-align: left;
+      direction: ltr;
+    }
+
+    /* 高亮层：在下面 */
+    #hl {
+      z-index: 1;
+      overflow: hidden;
+      pointer-events: none;
+      color: var(--text);
+      background: var(--bg);
+    }
+    #hl code {
+      display: block;
+      font: inherit;
+      white-space: inherit;
+      word-break: inherit;
+      overflow-wrap: inherit;
+    }
+
+    /* 输入层：透明文字叠在高亮层之上 */
+    #editor {
+      z-index: 2;
+      resize: none;
+      outline: 0;
+      overflow: auto;
+      background: transparent;
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+      caret-color: var(--accent);
+      scrollbar-width: thin;
+      scrollbar-color: #c8cfd8 transparent;
+    }
+    #editor::selection {
+      background: #b6d4fe;
+      -webkit-text-fill-color: transparent;
+    }
+    #editor::-webkit-scrollbar { width: 12px; height: 12px; }
+    #editor::-webkit-scrollbar-track { background: transparent; }
+    #editor::-webkit-scrollbar-thumb {
+      background: #cdd4dd;
+      border-radius: 10px;
+      border: 3px solid var(--bg);
+      background-clip: padding-box;
+    }
+    #editor::-webkit-scrollbar-thumb:hover {
+      background: #b3bcc8;
+      background-clip: padding-box;
+    }
+
+    /* ---------- 语法着色 ---------- */
+    .tok-comment { color: var(--tok-comment); font-style: italic; }
+    .tok-keyword { color: var(--tok-keyword); }
+    .tok-string  { color: var(--tok-string); }
+    .tok-number  { color: var(--tok-number); }
+    .tok-literal { color: var(--tok-literal); }
+    .tok-func    { color: var(--tok-func); }
+    .tok-tag     { color: var(--tok-tag); font-weight: 600; }
+    .tok-punct   { color: var(--tok-punct); }
+
+    /* ---------- 空状态 ---------- */
     .empty {
       position: absolute;
       inset: 0;
@@ -186,51 +353,129 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 13px;
       text-align: center;
       padding: 24px;
-      color: var(--muted);
+      color: var(--text-3);
       pointer-events: none;
+      overflow: hidden;
+      background: var(--bg);
     }
-    .empty .icon { font-size: 46px; line-height: 1; opacity: .75; }
-    .empty .title { font-size: 15px; color: var(--text); font-weight: 600; }
-    .empty .sub { font-size: 12.5px; line-height: 1.7; }
+    .empty::before {
+      content: "";
+      position: absolute;
+      width: 540px;
+      height: 540px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(37, 99, 235, .08), transparent 68%);
+    }
+    .empty .icon {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      display: grid;
+      place-items: center;
+      border-radius: 20px;
+      background: linear-gradient(180deg, #ffffff, #f4f7fb);
+      border: 1px solid var(--border);
+      color: #9fb0c9;
+      box-shadow: 0 10px 28px rgba(28, 35, 49, .07);
+      margin-bottom: 2px;
+    }
+    .empty .icon svg { width: 32px; height: 32px; }
+    .empty .title {
+      position: relative;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: .2px;
+    }
+    .empty .sub {
+      position: relative;
+      font-size: 12.5px;
+      line-height: 1.85;
+    }
 
     /* ---------- 状态栏 ---------- */
     .statusbar {
       flex: none;
       display: flex;
       align-items: center;
-      gap: 9px;
-      padding: 6px 14px;
-      background: var(--panel);
+      gap: 10px;
+      padding: 7px 16px;
+      background: var(--surface);
       border-top: 1px solid var(--border);
-      font-size: 12px;
-      color: var(--muted);
+      font-size: 11.5px;
+      color: var(--text-3);
       overflow: hidden;
       white-space: nowrap;
     }
     .statusbar .grow { flex: 1 1 auto; }
-    .statusbar .sep { opacity: .35; }
+    .statusbar .sep {
+      font-size: 0;
+      display: inline-block;
+      flex: none;
+      width: 1px;
+      height: 11px;
+      background: var(--border-2);
+    }
     .statusbar #stFile {
-      max-width: 40vw;
+      max-width: 38vw;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: var(--text);
+      color: var(--text-2);
     }
-    .badge {
-      padding: 1px 7px;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      background: #21262d;
-      font-size: 11.5px;
-    }
-    .badge.utf  { color: #79c0ff; border-color: #1f4b7a; }
-    .badge.ansi { color: #d2a8ff; border-color: #553b7a; }
-    .badge.warn { color: #e3b341; border-color: #7a5f10; }
 
-    #stDirty { color: var(--muted); }
-    #stDirty.is-dirty { color: var(--yellow); font-weight: 600; }
+    .badge {
+      padding: 2px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: .2px;
+      color: var(--text-2);
+    }
+    .badge.utf {
+      color: #1d4ed8;
+      border-color: #c9dbfb;
+      background: #eef4ff;
+    }
+    .badge.ansi {
+      color: #7c3aed;
+      border-color: #ddd2fb;
+      background: #f6f2ff;
+    }
+    .badge.warn {
+      color: #9a6700;
+      border-color: #f0e0b8;
+      background: #fff9ea;
+    }
+
+    #stDirty {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-3);
+      transition: color .16s;
+    }
+    #stDirty::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: .4;
+      transition: opacity .16s, box-shadow .16s;
+    }
+    #stDirty.is-dirty {
+      color: var(--yellow);
+      font-weight: 600;
+    }
+    #stDirty.is-dirty::before {
+      opacity: 1;
+      box-shadow: 0 0 0 3px rgba(154, 103, 0, .14);
+    }
 
     /* ---------- 拖拽层 ---------- */
     .drop-overlay {
@@ -240,53 +485,87 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
-      font-weight: 700;
-      color: #fff;
-      background: rgba(31, 111, 235, .28);
-      border: 3px dashed rgba(88, 166, 255, .9);
-      border-radius: 12px;
+      background: rgba(240, 245, 252, .74);
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
       opacity: 0;
       pointer-events: none;
-      transition: opacity .15s ease;
+      transition: opacity .16s ease;
     }
     .drop-overlay.show { opacity: 1; }
+
+    .drop-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 34px 46px;
+      border-radius: 16px;
+      border: 1.5px dashed rgba(37, 99, 235, .5);
+      background: #ffffff;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: .3px;
+      box-shadow: 0 22px 60px rgba(28, 35, 49, .16);
+      transform: scale(.97);
+      transition: transform .18s ease;
+    }
+    .drop-overlay.show .drop-card { transform: scale(1); }
+    .drop-card svg { width: 30px; height: 30px; color: var(--accent); }
 
     /* ---------- Toast ---------- */
     .toast {
       position: fixed;
       left: 50%;
-      bottom: 48px;
-      transform: translate(-50%, 14px);
+      bottom: 46px;
       z-index: 60;
-      max-width: 80vw;
-      padding: 10px 18px;
-      border-radius: 10px;
-      background: #21262d;
-      border: 1px solid var(--border);
+      transform: translate(-50%, 14px);
+      max-width: min(80vw, 560px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 18px 11px 16px;
+      border-radius: 11px;
+      background: #ffffff;
+      border: 1px solid var(--border-2);
       color: var(--text);
       font-size: 13px;
-      box-shadow: 0 8px 26px rgba(0, 0, 0, .55);
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+      box-shadow: 0 12px 34px rgba(28, 35, 49, .16);
       opacity: 0;
       pointer-events: none;
       transition: opacity .2s ease, transform .2s ease;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    }
+    .toast::before {
+      content: "";
+      flex: none;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
     }
     .toast.show { opacity: 1; transform: translate(-50%, 0); }
-    .toast.ok    { border-color: #2ea043; }
-    .toast.warn  { border-color: #9e6a03; }
-    .toast.error { border-color: #b62324; }
+    .toast.ok    { border-color: #b9e6c9; }
+    .toast.warn  { border-color: #f0e0b8; }
+    .toast.error { border-color: #f3c3c1; }
+    .toast.ok::before    { background: var(--green);  box-shadow: 0 0 0 3px rgba(26, 127, 55, .13); }
+    .toast.warn::before  { background: var(--yellow); box-shadow: 0 0 0 3px rgba(154, 103, 0, .13); }
+    .toast.error::before { background: var(--red);    box-shadow: 0 0 0 3px rgba(207, 34, 46, .13); }
 
-    @media (max-width: 780px) {
-      .brand small { display: none; }
-      .btn { padding: 7px 10px; font-size: 12.5px; }
-      .options-bar { gap: 10px; padding: 6px 10px; }
-      .opt select { max-width: 140px; }
+    /* ---------- 响应式 ---------- */
+    @media (max-width: 860px) {
+      .brand-text small { display: none; }
+      .btn { height: 32px; padding: 0 10px; font-size: 12.5px; gap: 5px; }
+      .btn svg { width: 14px; height: 14px; }
+      .options-bar { gap: 12px; padding: 8px 12px; }
+      .opt select { max-width: 138px; padding: 4px 26px 4px 9px; }
       .opt-hint { display: none; }
-      .statusbar { gap: 7px; font-size: 11px; }
-      .statusbar #stFile { max-width: 34vw; }
+      .statusbar { gap: 8px; font-size: 11px; padding: 6px 12px; }
+      .statusbar #stFile { max-width: 30vw; }
+      #editor, #hl { padding: 16px 16px 40px; }
     }
   </style>
 </head>
@@ -297,19 +576,67 @@
   <!-- ======= 工具栏 ======= -->
   <header class="toolbar">
     <div class="brand">
-      纯文本编辑器
-      <small>预览 · 编辑 · 保持原编码导出</small>
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11.5 2.5H6A1.5 1.5 0 0 0 4.5 4v12A1.5 1.5 0 0 0 6 17.5h8a1.5 1.5 0 0 0 1.5-1.5V6.5z"/>
+          <path d="M11.5 2.5v4h4"/>
+        </svg>
+      </span>
+      <span class="brand-text">
+        <b>纯文本编辑器</b>
+        <small>预览 · 编辑 · 保持原编码导出</small>
+      </span>
     </div>
 
     <div class="spacer"></div>
 
-    <button id="btnNew"  class="btn">📄 新建</button>
-    <button id="btnOpen" class="btn">📂 打开</button>
+    <button id="btnNew" class="btn" title="Ctrl+N">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9.5 1.5H4.5A1.5 1.5 0 0 0 3 3v10a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 13 13V5"/>
+        <path d="M9.5 1.5V4a1 1 0 0 0 1 1H13"/>
+        <path d="M8 8.5v4M6 10.5h4"/>
+      </svg>
+      新建
+    </button>
+
+    <button id="btnOpen" class="btn" title="Ctrl+O">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1.9 12.1V3.9a1 1 0 0 1 1-1h3.1l1.5 1.8h5.6a1 1 0 0 1 1 1v6.4a1 1 0 0 1-1 1H2.9a1 1 0 0 1-1-1Z"/>
+      </svg>
+      打开
+    </button>
     <input id="fileInput" type="file" hidden />
 
-    <button id="btnSave"   class="btn primary" disabled title="Ctrl+S">💾 保存</button>
-    <button id="btnSaveAs" class="btn" disabled title="Ctrl+Shift+S：文件名 = 原名 + 月日时分">📑 另存为</button>
-    <button id="btnRevert" class="btn ghost" disabled>↺ 还原</button>
+    <button id="btnSave" class="btn primary" disabled title="Ctrl+S">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2.5 4A1.5 1.5 0 0 1 4 2.5h5.6L13.5 6.4V12A1.5 1.5 0 0 1 12 13.5H4A1.5 1.5 0 0 1 2.5 12z"/>
+        <path d="M5 2.5v4h5v-4"/>
+        <path d="M4.6 13.5v-4h6.8v4"/>
+      </svg>
+      保存
+    </button>
+
+    <button id="btnSaveAs" class="btn" disabled title="Ctrl+Shift+S：文件名 = 原名 + 月日时分">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"
+           stroke-linecap="round" stroke-linejoin="round">
+        <rect x="5.5" y="5.5" width="8" height="9" rx="1.5"/>
+        <path d="M10.5 2.5H4A1.5 1.5 0 0 0 2.5 4v7"/>
+      </svg>
+      另存为
+    </button>
+
+    <button id="btnRevert" class="btn ghost" disabled>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13 8a5 5 0 1 1-5-5"/>
+        <path d="M8 1.2 10.6 3 8 4.8"/>
+      </svg>
+      还原
+    </button>
   </header>
 
   <!-- ======= 选项条 ======= -->
@@ -332,13 +659,37 @@
       <select id="selEncode" disabled></select>
     </label>
 
+    <label class="opt">
+      <span>语法</span>
+      <select id="selLang" disabled>
+        <option value="auto">自动检测</option>
+        <option value="plain">纯文本</option>
+        <option value="javascript">JavaScript</option>
+        <option value="typescript">TypeScript</option>
+        <option value="python">Python</option>
+        <option value="markup">HTML / XML</option>
+        <option value="css">CSS</option>
+        <option value="json">JSON</option>
+        <option value="clike">C / Java / Go / Rust…</option>
+        <option value="shell">Shell</option>
+        <option value="sql">SQL</option>
+      </select>
+    </label>
+
     <span class="opt-hint" id="optHint"></span>
   </div>
 
   <!-- ======= 主体 ======= -->
   <main class="main">
     <div class="empty" id="emptyState">
-      <div class="icon">📄</div>
+      <div class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>
+          <path d="M14 3v5h5"/>
+          <path d="M9 13h6M9 17h4"/>
+        </svg>
+      </div>
       <div class="title">拖入任意文件，或点击「打开」/「新建」</div>
       <div class="sub">
         不限制文件类型，一律按纯文本处理<br />
@@ -347,6 +698,7 @@
     </div>
 
     <div class="editor-wrap" id="editorWrap" hidden>
+      <pre id="hl" aria-hidden="true"><code id="hlCode"></code></pre>
       <textarea id="editor" spellcheck="false" autocomplete="off"
                 autocorrect="off" autocapitalize="off"></textarea>
     </div>
@@ -360,13 +712,26 @@
     <span class="sep">·</span>
     <span id="stEol">—</span>
     <span class="sep">·</span>
+    <span id="stLang" class="badge">—</span>
+    <span class="sep">·</span>
     <span id="stSize">—</span>
     <span class="grow"></span>
     <span id="stDirty">未修改</span>
   </footer>
 </div>
 
-<div class="drop-overlay" id="dropOverlay">松开鼠标以打开文件</div>
+<div class="drop-overlay" id="dropOverlay">
+  <div class="drop-card">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"
+         stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 16V4"/>
+      <path d="M7.5 8.5 12 4l4.5 4.5"/>
+      <path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/>
+    </svg>
+    <span>松开鼠标以打开文件</span>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -380,6 +745,8 @@
 
     const editor      = $('editor');
     const editorWrap  = $('editorWrap');
+    const hl          = $('hl');
+    const hlCode      = $('hlCode');
     const emptyState  = $('emptyState');
     const btnNew      = $('btnNew');
     const btnOpen     = $('btnOpen');
@@ -390,10 +757,12 @@
     const selDecode   = $('selDecode');
     const selEncode   = $('selEncode');
     const selEol      = $('selEol');
+    const selLang     = $('selLang');
     const optHint     = $('optHint');
     const stFile      = $('stFile');
     const stEncoding  = $('stEncoding');
     const stEol       = $('stEol');
+    const stLang      = $('stLang');
     const stSize      = $('stSize');
     const stDirty     = $('stDirty');
     const dropOverlay = $('dropOverlay');
@@ -429,8 +798,6 @@
     };
     ENCODINGS.forEach(function (e) { ENC_LABEL[e.id] = e.label; });
 
-    // 浏览器原生 TextEncoder 只支持 UTF-8；UTF-16 由我们手动编码。
-    // 其他多字节编码（GB18030/Big5/…）无法在纯前端还原，导出时会提示转为 UTF-8。
     function canEncode(enc) {
       return enc === 'utf-8' || enc === 'utf-8-bom' ||
              enc === 'utf-16le' || enc === 'utf-16le-bom' ||
@@ -440,44 +807,310 @@
     function encodingLabel(id) { return ENC_LABEL[id] || id; }
 
     /* =========================================================
+     * 语法定义
+     * ======================================================= */
+    const LANG_DEFS = {
+      javascript: {
+        name: 'JavaScript',
+        lineComments: ['//'],
+        blockComments: [['/*', '*/']],
+        strings: ['"', "'", '`'],
+        keywords: 'break case catch class const continue debugger default delete do else export extends finally for function if import in instanceof let new return super switch this throw try typeof var void while with yield async await of static get set from as',
+        literals: 'true false null undefined NaN Infinity this super'
+      },
+      typescript: {
+        name: 'TypeScript',
+        lineComments: ['//'],
+        blockComments: [['/*', '*/']],
+        strings: ['"', "'", '`'],
+        keywords: 'break case catch class const continue declare default delete do else enum export extends finally for function if implements import in instanceof interface let new private protected public readonly return static super switch this throw try type typeof var void while with yield async await of as namespace abstract keyof infer is satisfies',
+        literals: 'true false null undefined NaN Infinity never unknown any'
+      },
+      python: {
+        name: 'Python',
+        lineComments: ['#'],
+        blockComments: [],
+        strings: ['"', "'"],
+        keywords: 'and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield match case print len range',
+        literals: 'True False None self cls'
+      },
+      css: {
+        name: 'CSS',
+        lineComments: [],
+        blockComments: [['/*', '*/']],
+        strings: ['"', "'"],
+        keywords: 'important media supports keyframes import charset font-face page layer container',
+        literals: ''
+      },
+      json: {
+        name: 'JSON',
+        lineComments: ['//'],
+        blockComments: [['/*', '*/']],
+        strings: ['"'],
+        keywords: '',
+        literals: 'true false null'
+      },
+      clike: {
+        name: 'C / Java / Go…',
+        lineComments: ['//'],
+        blockComments: [['/*', '*/']],
+        strings: ['"', "'"],
+        keywords: 'abstract assert auto boolean break byte case catch char class const constexpr continue default defer delete do double else enum extends extern final finally float for friend func go goto if implements import in instanceof int interface let long map namespace new package private protected pub public range register return select short signed sizeof static struct super switch synchronized template this throw throws trait transient try typedef typename type union unsafe unsigned use using var virtual void volatile where while yield async await fn impl match mod mut override println package printf scanf',
+        literals: 'true false null nullptr NULL undefined NaN'
+      },
+      shell: {
+        name: 'Shell',
+        lineComments: ['#'],
+        blockComments: [],
+        strings: ['"', "'"],
+        keywords: 'if then else elif fi for while until do done case esac function return in export local readonly source alias unset shift trap set exit break continue echo printf cd pwd read test',
+        literals: 'true false'
+      },
+      sql: {
+        name: 'SQL',
+        ci: true,
+        lineComments: ['--'],
+        blockComments: [['/*', '*/']],
+        strings: ["'", '"'],
+        keywords: 'select from where insert into values update set delete create alter drop table view index join inner left right full outer cross on group by order having limit offset union all as and or not is in between like exists distinct count sum avg min max primary key foreign references default constraint unique check cascade begin commit rollback transaction if else end case when then',
+        literals: 'null true false'
+      }
+    };
+
+    const LANG_NAMES = {
+      javascript: 'JavaScript', typescript: 'TypeScript', python: 'Python',
+      markup: 'HTML/XML', css: 'CSS', json: 'JSON', clike: 'C/Java',
+      shell: 'Shell', sql: 'SQL', plain: '纯文本'
+    };
+
+    const EXT_LANG = {
+      js: 'javascript', mjs: 'javascript', cjs: 'javascript', jsx: 'javascript',
+      ts: 'typescript', tsx: 'typescript', mts: 'typescript', cts: 'typescript',
+      py: 'python', pyw: 'python', pyi: 'python',
+      html: 'markup', htm: 'markup', xml: 'markup', svg: 'markup',
+      vue: 'markup', xhtml: 'markup', svelte: 'markup',
+      css: 'css', scss: 'css', sass: 'css', less: 'css', styl: 'css',
+      json: 'json', jsonc: 'json', json5: 'json',
+      java: 'clike', kt: 'clike', kts: 'clike', scala: 'clike',
+      groovy: 'clike', c: 'clike', h: 'clike', cpp: 'clike', cc: 'clike',
+      cxx: 'clike', hpp: 'clike', hh: 'clike', cs: 'clike', go: 'clike',
+      rs: 'clike', swift: 'clike', m: 'clike', mm: 'clike', php: 'clike',
+      sh: 'shell', bash: 'shell', zsh: 'shell', fish: 'shell', ksh: 'shell',
+      sql: 'sql'
+    };
+
+    /* =========================================================
+     * 语法高亮引擎
+     * ======================================================= */
+    const RE_IDENT = /[A-Za-z_$\u00c0-\uffff][\w$\u00c0-\uffff]*/y;
+    const RE_NUM   = /0[xX][0-9a-fA-F_]+|0[bB][01_]+|0[oO][0-7_]+|\d[\d_]*(?:\.[\d_]+)?(?:[eE][+-]?\d+)?/y;
+    const HL_LIMIT = 250000; // 超过此长度不高亮，避免卡顿
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"]/g, function (c) {
+        return c === '&' ? '&amp;'
+             : c === '<' ? '&lt;'
+             : c === '>' ? '&gt;'
+             : '&quot;';
+      });
+    }
+
+    function span(cls, text) {
+      return '<span class="tok-' + cls + '">' + escapeHtml(text) + '</span>';
+    }
+
+    function highlightCode(code, langKey) {
+      if (langKey === 'markup') return highlightMarkup(code);
+
+      const def = LANG_DEFS[langKey];
+      if (!def) return escapeHtml(code);
+
+      const ci = !!def.ci;
+      const kw   = new Set((def.keywords || '').split(/\s+/).filter(Boolean));
+      const lits = new Set((def.literals || '').split(/\s+/).filter(Boolean));
+      const lineComments  = def.lineComments || [];
+      const blockComments = def.blockComments || [];
+      const stringQuotes  = def.strings || [];
+
+      let out = '';
+      let i = 0;
+      const n = code.length;
+
+      while (i < n) {
+        let done = false;
+
+        /* 1) 块注释 */
+        for (let k = 0; k < blockComments.length; k++) {
+          const open = blockComments[k][0], close = blockComments[k][1];
+          if (code.startsWith(open, i)) {
+            const e = code.indexOf(close, i + open.length);
+            const stop = e === -1 ? n : e + close.length;
+            out += span('comment', code.slice(i, stop));
+            i = stop; done = true; break;
+          }
+        }
+        if (done) continue;
+
+        /* 2) 行注释 */
+        for (let k = 0; k < lineComments.length; k++) {
+          const open = lineComments[k];
+          if (code.startsWith(open, i)) {
+            let e = code.indexOf('\n', i);
+            if (e === -1) e = n;
+            out += span('comment', code.slice(i, e));
+            i = e; done = true; break;
+          }
+        }
+        if (done) continue;
+
+        const ch = code[i];
+
+        /* 3) 字符串 */
+        if (stringQuotes.indexOf(ch) !== -1) {
+          let j = i + 1;
+          while (j < n) {
+            const cj = code[j];
+            if (cj === '\\') { j += 2; continue; }
+            if (cj === ch) { j++; break; }
+            if (ch !== '`' && cj === '\n') break;
+            j++;
+          }
+          out += span('string', code.slice(i, j));
+          i = j; continue;
+        }
+
+        /* 4) 数字 */
+        if (ch >= '0' && ch <= '9') {
+          const prev = i > 0 ? code[i - 1] : '';
+          if (!/[A-Za-z0-9_$]/.test(prev)) {
+            RE_NUM.lastIndex = i;
+            const m = RE_NUM.exec(code);
+            if (m) {
+              out += span('number', m[0]);
+              i = RE_NUM.lastIndex;
+              continue;
+            }
+          }
+        }
+
+        /* 5) 标识符 / 关键字 */
+        if (/[A-Za-z_$\u00c0-\uffff]/.test(ch)) {
+          RE_IDENT.lastIndex = i;
+          const m = RE_IDENT.exec(code);
+          if (m) {
+            const word = m[0];
+            i = RE_IDENT.lastIndex;
+            const key = ci ? word.toLowerCase() : word;
+            if (kw.has(key))        out += span('keyword', word);
+            else if (lits.has(key)) out += span('literal', word);
+            else if (code[i] === '(') out += span('func', word);
+            else                    out += escapeHtml(word);
+            continue;
+          }
+        }
+
+        /* 6) 其他 */
+        out += escapeHtml(ch);
+        i++;
+      }
+      return out;
+    }
+
+    /* HTML / XML 专用 */
+    const RE_MARKUP = /<!--[\s\S]*?(?:-->|$)|<!\[CDATA\[[\s\S]*?(?:\]\]>|$)|<!DOCTYPE[^>]*>|<\?[\s\S]*?(?:\?>|$)|<\/?([A-Za-z][\w:.\-]*)|(\/?>)|("[^"\n]*"|'[^'\n]*')|(&[a-zA-Z#][\w]*;)/g;
+
+    function highlightMarkup(code) {
+      let out = '';
+      let last = 0;
+      let m;
+      RE_MARKUP.lastIndex = 0;
+
+      while ((m = RE_MARKUP.exec(code))) {
+        out += escapeHtml(code.slice(last, m.index));
+        const t = m[0];
+
+        if (t.charCodeAt(0) === 60 && (t.charAt(1) === '!' || t.charAt(1) === '?')) {
+          out += span('comment', t);                       // 注释 / DOCTYPE / 处理指令
+        } else if (m[2]) {
+          out += span('punct', t);                         // > 或 />
+        } else if (m[3]) {
+          out += span('string', t);                        // 属性值
+        } else if (m[4]) {
+          out += span('number', t);                        // 实体
+        } else if (m[1]) {
+          const nameStart = t.length - m[1].length;
+          out += span('punct', t.slice(0, nameStart)) + span('tag', m[1]);
+        } else {
+          out += escapeHtml(t);
+        }
+        last = m.index + t.length;
+      }
+      out += escapeHtml(code.slice(last));
+      return out;
+    }
+
+    /* =========================================================
+     * 语言自动识别
+     * ======================================================= */
+    function guessByContent(text) {
+      const s = text.slice(0, 4000);
+      if (!s.trim()) return null;
+
+      if (/<!DOCTYPE\s+html|<html[\s>]|<\?xml[\s>]/i.test(s)) return 'markup';
+      if (/^\s*[{[][\s\S]*[}\]]\s*$/.test(s.trim()) && /"[^"\n]*"\s*:/.test(s)) return 'json';
+      if (/^\s*#!\/.*\b(bash|sh|zsh|fish)\b/m.test(s)) return 'shell';
+      if (/\bdef\s+\w+\s*\(|\bclass\s+\w+\s*[(:]|^\s*(import\s+\w+\s*$|from\s+\w+\s+import)\b/m.test(s)) return 'python';
+      if (/^\s*(package\s+\w+;|public\s+(class|static)|#include\s*<|\bint\s+main\s*\()/m.test(s)) return 'clike';
+      if (/\bfunction\b|\b(const|let|var)\s+\w+\s*=|=>|console\.log|^\s*import\s+.*\bfrom\b/m.test(s)) return 'javascript';
+      if (/^\s*(SELECT|INSERT|UPDATE|DELETE|CREATE\s+TABLE)\b/im.test(s)) return 'sql';
+      if (/[.#][\w-]+\s*\{[^}]*:[^}]*\}/.test(s)) return 'css';
+
+      return null;
+    }
+
+    function detectLang(fileName, text) {
+      const m = /\.([A-Za-z0-9]+)$/.exec(fileName || '');
+      if (m) {
+        const ext = m[1].toLowerCase();
+        if (EXT_LANG[ext] !== undefined) return EXT_LANG[ext];
+        if (ext === 'txt' || ext === 'log' || ext === 'md' || ext === 'csv') return 'plain';
+      }
+      return guessByContent(text);
+    }
+
+    /* =========================================================
      * 全局状态
      * ======================================================= */
     const state = {
-      handle:    null,      // FileSystemFileHandle（可覆盖原文件）
+      handle:    null,
       fileName:  '',
-      rawBytes:  null,      // 原始字节，切换编码时重新解码
-      encoding:  'utf-8',   // 当前读取编码
+      rawBytes:  null,
+      encoding:  'utf-8',
       eol:       '\n',
-      savedText: '',        // 上次保存/加载的 LF 归一化文本
+      savedText: '',
       loaded:    false,
       isNew:     false,
-      dirty:     false
+      dirty:     false,
+      lang:      'auto'
     };
 
     /* =========================================================
      * 编解码
      * ======================================================= */
-
-    /** 用指定编码解码字节（TextDecoder 会自动剥离 BOM） */
     function decodeWith(bytes, encodingId) {
       const base = ENC_BASE[encodingId] || 'utf-8';
       let dec;
-      try {
-        dec = new TextDecoder(base, { fatal: false });
-      } catch (err) {
-        // 浏览器不支持该编码，退回 UTF-8
-        dec = new TextDecoder('utf-8', { fatal: false });
-      }
+      try { dec = new TextDecoder(base, { fatal: false }); }
+      catch (err) { dec = new TextDecoder('utf-8', { fatal: false }); }
       return dec.decode(bytes);
     }
 
-    /** 用指定编码编码字符串；无法编码时返回 null */
     function encodeWith(text, encodingId) {
       const withBom = /-bom$/.test(encodingId);
       const base = withBom ? encodingId.replace(/-bom$/, '') : encodingId;
 
       if (base === 'utf-8') {
-        let bytes = new TextEncoder().encode(text);
+        const bytes = new TextEncoder().encode(text);
         if (withBom) {
           const out = new Uint8Array(bytes.length + 3);
           out[0] = 0xEF; out[1] = 0xBB; out[2] = 0xBF;
@@ -504,22 +1137,20 @@
         return out;
       }
 
-      return null; // 不支持
+      return null;
     }
 
     /* =========================================================
-     * 编码自动探测
+     * 编码探测
      * ======================================================= */
     function detectEncoding(bytes) {
       if (!bytes || bytes.length === 0) return 'utf-8';
 
-      // 1) BOM
       if (bytes.length >= 3 &&
           bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) return 'utf-8-bom';
       if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) return 'utf-16le-bom';
       if (bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF) return 'utf-16be-bom';
 
-      // 2) 零字节分布 → 可能是无 BOM 的 UTF-16
       const n = Math.min(bytes.length, 1024);
       let evenZero = 0, oddZero = 0;
       for (let i = 0; i < n; i++) {
@@ -531,17 +1162,14 @@
         if (evenZero >= half * 0.7 && oddZero  < half * 0.1) return 'utf-16be';
       }
 
-      // 3) 严格 UTF-8 校验
       try {
         new TextDecoder('utf-8', { fatal: true }).decode(bytes);
         return 'utf-8';
-      } catch (err) { /* 不是合法 UTF-8 */ }
+      } catch (err) { /* not utf-8 */ }
 
-      // 4) 兜底：中文环境最常见的是 GB18030/GBK
       return 'gb18030';
     }
 
-    /** 换行符风格探测 */
     function detectEol(text) {
       const crlf = (text.match(/\r\n/g) || []).length;
       const lfAll = (text.match(/\n/g) || []).length;
@@ -584,16 +1212,53 @@
     }
 
     /* =========================================================
+     * 高亮渲染
+     * ======================================================= */
+    let hlRaf = null;
+
+    function resolveLang() {
+      if (state.lang !== 'auto') return state.lang;
+      return detectLang(state.fileName, editor.value);
+    }
+
+    function refreshHighlight() {
+      if (!state.loaded) return;
+      const text = editor.value;
+      const lang = resolveLang();
+      state.resolvedLang = lang;
+
+      if (text.length > HL_LIMIT) {
+        hlCode.textContent = text + '\n';
+      } else if (lang && lang !== 'plain' && (LANG_DEFS[lang] || lang === 'markup')) {
+        hlCode.innerHTML = highlightCode(text, lang) + '\n';
+      } else {
+        hlCode.textContent = text + '\n';
+      }
+      syncScroll();
+    }
+
+    function scheduleHighlight() {
+      if (hlRaf) return;
+      hlRaf = requestAnimationFrame(function () {
+        hlRaf = null;
+        refreshHighlight();
+      });
+    }
+
+    function syncScroll() {
+      hl.scrollTop = editor.scrollTop;
+      hl.scrollLeft = editor.scrollLeft;
+    }
+
+    editor.addEventListener('scroll', syncScroll, { passive: true });
+
+    /* =========================================================
      * 打开 / 加载 / 新建
      * ======================================================= */
-
     async function openFile() {
       if (typeof window.showOpenFilePicker === 'function') {
         try {
-          const handles = await window.showOpenFilePicker({
-            multiple: false
-            // 不设置 types → 允许所有文件类型
-          });
+          const handles = await window.showOpenFilePicker({ multiple: false });
           const handle = handles[0];
           const file = await handle.getFile();
           await loadFile(file, handle);
@@ -626,7 +1291,6 @@
         const text = decodeWith(bytes, enc);
         const normalized = toLF(text);
 
-        // 统计替换字符，判断是否解码出错
         const badCount = (normalized.match(/\uFFFD/g) || []).length;
         const maybeBinary = normalized.length > 200 && badCount > normalized.length * 0.05;
 
@@ -638,6 +1302,7 @@
         state.savedText = normalized;
         state.loaded    = true;
         state.isNew     = false;
+        state.lang      = 'auto';
 
         editor.value = normalized;
         editor.scrollTop = 0;
@@ -649,6 +1314,7 @@
 
         setDirty(false);
         updateOptionsUI();
+        refreshHighlight();
         updateStatus();
 
         if (maybeBinary) {
@@ -673,6 +1339,7 @@
       state.savedText = '';
       state.loaded    = true;
       state.isNew     = true;
+      state.lang      = 'auto';
 
       editor.value = '';
       editor.scrollTop = 0;
@@ -683,6 +1350,7 @@
 
       setDirty(false);
       updateOptionsUI();
+      refreshHighlight();
       updateStatus();
       editor.focus();
       toast('已新建空白文件（导出为 .txt）', 'ok');
@@ -691,7 +1359,6 @@
     /* =========================================================
      * 导出
      * ======================================================= */
-
     function buildExportText() {
       let t = toLF(editor.value);
       if (state.eol === '\r\n') t = t.replace(/\n/g, '\r\n');
@@ -704,7 +1371,6 @@
       return v;
     }
 
-    /** 返回实际可用的导出编码；必要时提示用户 */
     function resolveExportEncoding() {
       let enc = getExportEncoding();
 
@@ -752,7 +1418,6 @@
       setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
     }
 
-    /** 覆盖保存（原文件） */
     async function saveOverwrite() {
       if (!state.loaded) return;
 
@@ -782,7 +1447,6 @@
         toast('已下载：' + state.fileName, 'ok');
       }
 
-      // 状态同步
       state.encoding = enc;
       state.savedText = editor.value;
       state.rawBytes = bytes;
@@ -792,7 +1456,6 @@
       updateStatus();
     }
 
-    /** 另存为新文件：原名 + 月日时分 */
     async function saveAsCopy() {
       if (!state.loaded) return;
 
@@ -823,25 +1486,26 @@
     /* =========================================================
      * UI 状态
      * ======================================================= */
-
     function updateOptionsUI() {
       const on = state.loaded;
 
       selEol.disabled = !on;
       selEncode.disabled = !on;
+      selLang.disabled = !on;
 
       if (!on) {
         selDecode.disabled = true;
         return;
       }
 
-      selDecode.disabled = state.isNew;   // 新建文件没有原始字节
+      selDecode.disabled = state.isNew;
       if (!state.isNew) {
         if (selDecode.querySelector('option[value="' + state.encoding + '"]')) {
           selDecode.value = state.encoding;
         }
       }
       selEol.value = (state.eol === '\r\n') ? 'crlf' : 'lf';
+      selLang.value = state.lang;
 
       if (selEncode.value !== '__same__' &&
           !selEncode.querySelector('option[value="' + selEncode.value + '"]')) {
@@ -855,6 +1519,8 @@
         stEncoding.className = 'badge';
         stEncoding.textContent = '—';
         stEol.textContent = '—';
+        stLang.className = 'badge';
+        stLang.textContent = '—';
         stSize.textContent = '—';
         btnSave.disabled = true;
         btnSaveAs.disabled = true;
@@ -863,15 +1529,15 @@
         return;
       }
 
-      stFile.textContent = state.fileName + (state.isNew ? '（新建）' : (state.handle ? '' : '（只读模式）'));
+      stFile.textContent = state.fileName +
+        (state.isNew ? '（新建）' : (state.handle ? '' : '（只读模式）'));
 
       // 编码徽章
       let cls, label;
       if (state.encoding === 'utf-8' || state.encoding === 'utf-8-bom') {
         cls = 'utf';
         label = state.encoding === 'utf-8-bom' ? 'UTF-8 BOM' : 'UTF-8';
-      } else if (state.encoding === 'utf-16le' || state.encoding === 'utf-16le-bom' ||
-                 state.encoding === 'utf-16be' || state.encoding === 'utf-16be-bom') {
+      } else if (state.encoding.indexOf('utf-16') === 0) {
         cls = 'utf';
         label = state.encoding.toUpperCase().replace('-', ' ');
       } else {
@@ -882,13 +1548,23 @@
       stEncoding.textContent = label;
 
       stEol.textContent = '换行 ' + (state.eol === '\r\n' ? 'CRLF' : 'LF');
+
+      // 语言徽章
+      const lang = state.resolvedLang;
+      if (lang && lang !== 'plain') {
+        stLang.className = 'badge utf';
+        stLang.textContent = LANG_NAMES[lang] || lang;
+      } else {
+        stLang.className = 'badge';
+        stLang.textContent = '纯文本';
+      }
+
       stSize.textContent = editor.value.length + ' 字符';
 
       btnSave.disabled = false;
       btnSaveAs.disabled = false;
       btnRevert.disabled = !state.dirty;
 
-      // 提示文字
       const exEnc = getExportEncoding();
       if (canEncode(exEnc)) {
         optHint.textContent = '导出将以 ' + encodingLabel(exEnc) + ' 写出';
@@ -899,7 +1575,7 @@
 
     function setDirty(isDirty) {
       state.dirty = isDirty;
-      stDirty.textContent = isDirty ? '● 已修改' : '未修改';
+      stDirty.textContent = isDirty ? '已修改' : '未修改';
       stDirty.classList.toggle('is-dirty', isDirty);
       if (state.loaded) btnRevert.disabled = !isDirty;
     }
@@ -915,7 +1591,6 @@
     /* =========================================================
      * 事件绑定
      * ======================================================= */
-
     btnNew.addEventListener('click', function () {
       if (state.dirty && !confirm('当前有未保存的修改，确定新建空白文件？')) return;
       newFile();
@@ -934,14 +1609,15 @@
       if (state.dirty && !confirm('确定放弃未保存的修改，还原到上次保存的内容？')) return;
       editor.value = state.savedText;
       setDirty(false);
+      refreshHighlight();
       updateStatus();
       toast('已还原', 'ok');
     });
 
-    // 编辑监听
     editor.addEventListener('input', function () {
       setDirty(editor.value !== state.savedText);
       stSize.textContent = editor.value.length + ' 字符';
+      scheduleHighlight();
     });
 
     // Tab 缩进
@@ -953,10 +1629,11 @@
         editor.selectionStart = editor.selectionEnd = s + 1;
         setDirty(editor.value !== state.savedText);
         stSize.textContent = editor.value.length + ' 字符';
+        scheduleHighlight();
       }
     });
 
-    // 读取编码切换 → 重新解码原始字节
+    // 读取编码切换
     selDecode.addEventListener('change', function () {
       if (!state.loaded || state.isNew || !state.rawBytes) return;
 
@@ -975,8 +1652,10 @@
       state.savedText = normalized;
 
       editor.value = normalized;
+      editor.scrollTop = 0;
       setDirty(false);
       updateOptionsUI();
+      refreshHighlight();
       updateStatus();
 
       const bad = (normalized.match(/\uFFFD/g) || []).length;
@@ -995,6 +1674,13 @@
 
     // 保存编码切换
     selEncode.addEventListener('change', updateStatus);
+
+    // 语法切换
+    selLang.addEventListener('change', function () {
+      state.lang = selLang.value;
+      refreshHighlight();
+      updateStatus();
+    });
 
     // 快捷键
     document.addEventListener('keydown', function (e) {
@@ -1016,7 +1702,6 @@
       }
     });
 
-    // 关闭前提醒
     window.addEventListener('beforeunload', function (e) {
       if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
     });
@@ -1076,6 +1761,7 @@
     fillEncodingSelect(selEncode, true);
     selDecode.value = 'utf-8';
     selEncode.value = '__same__';
+    selLang.value = 'auto';
 
     updateOptionsUI();
     updateStatus();
