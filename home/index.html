@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>常用工具类</title>
+  <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: system-ui, sans-serif;
+    }
+    body {
+        background-color: #f5f7fa;
+        padding: 40px 20px;
+    }
+    .container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    h1 {
+        text-align: center;
+        color: #222;
+        margin-bottom: 40px;
+        font-size: 28px;
+    }
+    .tool-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+    }
+    .tool-btn {
+        padding: 24px 16px;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        font-size: 18px;
+        color: #333;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .tool-btn:hover {
+        background-color: #4080ff;
+        color: white;
+        border-color: #4080ff;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>常用工具类</h1>
+  <div class="tool-list">
+    <button class="tool-btn" onclick="location.href='https://songzhiyin.github.io/commonUtil/game21/'">21点游戏</button>
+    <button class="tool-btn" onclick="location.href='https://songzhiyin.github.io/commonUtil/picture/'">图片浏览器</button>
+    <button class="tool-btn" onclick="location.href='https://songzhiyin.github.io/commonUtil/novel/'">小说阅读器</button>
+    <button class="tool-btn" onclick="location.href='https://songzhiyin.github.io/commonUtil/appLanguage/'">APP多语言管理</button>
+  </div>
+</div>
+</body>
+</html>
