@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TXT 小说阅读器</title>
+  <style>
+    :root{
+      --bg:#f6f3ec;
+      --panel:#ffffff;
+      --border:#e7e1d5;
+      --text:#33322e;
+      --muted:#918a7c;
+      --accent:#a35b3b;
+      --accent-soft:#f3e9e1;
+    }
+    *{box-sizing:border-box;}
+    html,body{height:100%;margin:0;}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+      background:var(--bg);color:var(--text);overflow:hidden;
+    }
+    #app{display:flex;height:100vh;}
+
+    /* ============ 侧边栏 ============ */
+    #sidebar{
+      width:300px;flex:0 0 auto;overflow:hidden;background:var(--panel);
+      border-right:1px solid var(--border);display:flex;flex-direction:column;
+      transition:width .22s ease;z-index:30;
+    }
+    #app.collapsed #sidebar{width:0;border-right:none;}
+    #sidebar .side-head,#sidebar .side-body,#sidebar .side-foot{min-width:300px;}
+
+    .side-head{padding:12px;border-bottom:1px solid var(--border);}
+    .row{display:flex;align-items:center;gap:8px;}
+    .book-title{
+      margin:10px 2px 4px;font-size:13px;color:var(--muted);
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .search-row{margin-top:8px;}
+    .search-row input{
+      flex:1;min-width:0;height:32px;border:1px solid var(--border);border-radius:8px;
+      padding:0 10px;font-size:13px;outline:none;background:#fbfaf7;color:var(--text);
+    }
+    .search-row input:focus{border-color:var(--accent);background:#fff;}
+
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:6px;
+      height:32px;padding:0 12px;border:1px solid var(--border);border-radius:8px;
+      background:#fff;color:var(--text);font-size:13px;cursor:pointer;
+      user-select:none;white-space:nowrap;transition:.15s;
+    }
+    .btn:hover{border-color:var(--accent);color:var(--accent);}
+    .btn:active{transform:translateY(1px);}
+    .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+    .btn.primary:hover{background:#8e4c30;color:#fff;}
+    .btn.icon{width:32px;padding:0;font-size:15px;}
+    .btn.sm{height:28px;padding:0 10px;font-size:12px;}
+    .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+    .tabs{display:flex;gap:6px;margin-top:10px;}
+    .tab{
+      flex:1;height:30px;border:none;background:transparent;border-radius:8px;
+      font-size:13px;color:var(--muted);cursor:pointer;transition:.15s;
+    }
+    .tab.active{background:var(--accent-soft);color:var(--accent);font-weight:600;}
+    #resultCount{font-size:11px;opacity:.8;}
+
+    .side-body{flex:1;overflow-y:auto;overflow-x:hidden;}
+    .list{list-style:none;margin:0;padding:6px 0;}
+    .titem{
+      padding:9px 14px;font-size:13.5px;line-height:1.4;cursor:pointer;
+      color:#4a4741;border-left:3px solid transparent;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .titem:hover{background:#faf7f2;color:var(--accent);}
+    .titem.active{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent);font-weight:600;}
+
+    .sitem{padding:9px 14px;cursor:pointer;border-bottom:1px solid #f4f1ea;}
+    .sitem:hover{background:#faf7f2;}
+    .s-ch{font-size:12px;color:var(--accent);margin-bottom:3px;
+          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .s-tx{font-size:12.5px;color:#5c584f;line-height:1.5;
+          display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    .hint-li{padding:18px 14px;font-size:13px;color:var(--muted);text-align:center;}
+    .side-foot{
+      padding:8px 12px;border-top:1px solid var(--border);
+      font-size:12px;color:var(--muted);text-align:center;
+    }
+
+    /* ============ 主区域 ============ */
+    #main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;position:relative;background:var(--bg);}
+    #topbar{
+      flex:0 0 52px;display:flex;align-items:center;gap:10px;padding:0 14px;
+      border-bottom:1px solid var(--border);background:rgba(255,255,255,.9);
+      backdrop-filter:blur(8px);
+    }
+    #chapterLabel{
+      flex:1;min-width:0;font-size:13px;color:var(--muted);text-align:center;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 8px;
+    }
+
+    #readerWrap{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;}
+    #content{max-width:820px;margin:0 auto;padding:26px 30px 120px;}
+
+    .ch-title{
+      font-size:19px;font-weight:600;color:#6b4423;
+      margin:2.2em 0 1.1em;padding-left:12px;border-left:3px solid var(--accent);
+      line-height:1.5;
+    }
+    .chapter:first-child .ch-title{margin-top:.4em;}
+    .para{
+      font-size:18px;line-height:1.95;text-indent:2em;margin:0 0 1.05em;
+      color:#33322e;letter-spacing:.02em;word-break:break-word;
+    }
+    .para.flash{animation:flashBg 1.8s ease;}
+    @keyframes flashBg{0%{background:#fff2c2;border-radius:4px;}100%{background:transparent;}}
+    mark{background:#ffe58a;color:inherit;border-radius:3px;padding:0 1px;}
+
+    /* 空状态 */
+    #empty{
+      position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+      pointer-events:none;
+    }
+    #empty .empty-inner{text-align:center;color:var(--muted);pointer-events:auto;}
+    #empty .empty-inner p{margin:10px 0;font-size:14px;}
+    #empty .hint{font-size:12px;opacity:.7;}
+
+    /* 加载中 */
+    #loading{
+      position:absolute;inset:0;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:14px;
+      background:rgba(246,243,236,.85);z-index:60;font-size:13px;color:var(--muted);
+    }
+    .spinner{
+      width:26px;height:26px;border:3px solid #ddd6c8;border-top-color:var(--accent);
+      border-radius:50%;animation:spin .8s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* 拖拽高亮 */
+    body.dragging::after{
+      content:"松开鼠标载入 TXT 文件";position:fixed;inset:14px;border:2px dashed var(--accent);
+      border-radius:14px;background:rgba(163,91,59,.06);z-index:100;
+      display:flex;align-items:center;justify-content:center;
+      font-size:16px;color:var(--accent);
+    }
+
+    /* 滚动条 */
+    ::-webkit-scrollbar{width:8px;height:8px;}
+    ::-webkit-scrollbar-thumb{background:#d9d2c4;border-radius:8px;}
+    ::-webkit-scrollbar-thumb:hover{background:#c6bdab;}
+    ::-webkit-scrollbar-track{background:transparent;}
+
+    /* 移动端 */
+    @media (max-width:820px){
+      #sidebar{
+        position:fixed;top:0;bottom:0;left:0;width:300px;
+        box-shadow:0 0 30px rgba(0,0,0,.15);margin-left:0;
+        transition:margin-left .22s ease;
+      }
+      #app.collapsed #sidebar{width:300px;margin-left:-300px;border-right:1px solid var(--border);}
+      #app:not(.collapsed) #sidebar{width:300px;}
+      #content{padding:18px 16px 90px;}
+      .para{font-size:17px;}
+      .ch-title{font-size:17px;}
+    }
+  </style>
+</head>
+<body>
+<div id="app" class="collapsed-mobile">
+  <!-- ========== 侧边栏 ========== -->
+  <aside id="sidebar">
+    <div class="side-head">
+      <div class="row">
+        <label class="btn primary" style="flex:1">
+          📂 打开 TXT 文件
+          <input type="file" id="fileInput" accept=".txt,text/plain" hidden>
+        </label>
+      </div>
+      <div class="book-title" id="bookTitle">未选择文件</div>
+      <div class="row search-row">
+        <input type="search" id="searchInput" placeholder="搜索关键词 / 章节名">
+        <button class="btn" id="searchBtn">搜索</button>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-tab="toc">目录</button>
+        <button class="tab" data-tab="search">结果 <span id="resultCount"></span></button>
+      </div>
+    </div>
+    <div class="side-body" id="sideBody">
+      <ul id="tocList" class="list"></ul>
+      <ul id="searchList" class="list" style="display:none"></ul>
+    </div>
+    <div class="side-foot" id="footInfo">共 0 章</div>
+  </aside>
+
+  <!-- ========== 主区域 ========== -->
+  <main id="main">
+    <header id="topbar">
+      <button class="btn icon" id="toggleSidebarBtn" title="显示 / 隐藏目录">☰</button>
+      <div id="chapterLabel">—</div>
+      <div class="row">
+        <button class="btn sm" id="prevBtn" disabled>上一章</button>
+        <button class="btn sm" id="nextBtn" disabled>下一章</button>
+      </div>
+    </header>
+
+    <div id="readerWrap">
+      <div id="content"></div>
+      <div id="empty">
+        <div class="empty-inner">
+          <div style="font-size:46px;line-height:1">📖</div>
+          <p>点击左上角「打开 TXT 文件」开始阅读</p>
+          <p class="hint">也可以直接把 TXT 文件拖拽到这里</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="loading" style="display:none">
+      <div class="spinner"></div>
+      <span id="loadingText">加载中…</span>
+    </div>
+  </main>
+</div>
+
+<script>
+  (function () {
+    'use strict';
+
+    /* ==================== 元素引用 ==================== */
+    const $ = s => document.querySelector(s);
+    const els = {
+      app:            $('#app'),
+      sidebar:        $('#sidebar'),
+      toggleSidebar:  $('#toggleSidebarBtn'),
+      fileInput:      $('#fileInput'),
+      bookTitle:      $('#bookTitle'),
+      searchInput:    $('#searchInput'),
+      searchBtn:      $('#searchBtn'),
+      tocList:        $('#tocList'),
+      searchList:     $('#searchList'),
+      sideBody:       $('#sideBody'),
+      footInfo:       $('#footInfo'),
+      content:        $('#content'),
+      readerWrap:     $('#readerWrap'),
+      empty:          $('#empty'),
+      chapterLabel:   $('#chapterLabel'),
+      prevBtn:        $('#prevBtn'),
+      nextBtn:        $('#nextBtn'),
+      loading:        $('#loading'),
+      loadingText:    $('#loadingText'),
+      resultCount:    $('#resultCount'),
+    };
+
+    /* ==================== 全局状态 ==================== */
+    const WINDOW_AHEAD = 4;   // 跳转章节时向后预渲染的章节数
+    const MAX_RENDERED = 26;  // DOM 中最多保留的章节数
+    const SEARCH_LIMIT = 800; // 搜索结果上限
+
+    const state = {
+      chapters: [],       // [{ title, paras: [] }]
+      current: -1,
+      renderedStart: 0,
+      renderedEnd: -1,
+      keyword: '',
+      fileName: '',
+    };
+
+    /* ==================== 工具函数 ==================== */
+    function esc(s) {
+      return String(s).replace(/[&<>"]/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]
+      ));
+    }
+    function nextFrame() {
+      return new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+    }
+    function isNarrow() {
+      return window.innerWidth <= 820;
+    }
+
+    /* ==================== 编码识别 ==================== */
+    function decodeBuffer(buf) {
+      const bytes = new Uint8Array(buf);
+
+      // BOM 判定
+      if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+        return new TextDecoder('utf-8').decode(bytes.subarray(3));
+      }
+      if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) {
+        return new TextDecoder('utf-16le').decode(bytes.subarray(2));
+      }
+      if (bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF) {
+        return new TextDecoder('utf-16be').decode(bytes.subarray(2));
+      }
+
+      // 严格 UTF-8 尝试
+      let utf8 = null;
+      try {
+        utf8 = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      } catch (e) {
+        utf8 = null;
+      }
+      if (utf8 !== null && utf8.indexOf('\uFFFD') === -1) return utf8;
+
+      // 回退 GB18030 / GBK（中文 TXT 常见编码）
+      try { return new TextDecoder('gb18030').decode(bytes); } catch (e) {}
+      try { return new TextDecoder('gbk').decode(bytes); } catch (e) {}
+      return new TextDecoder('utf-8').decode(bytes);
+    }
+
+    /* ==================== 章节识别 ==================== */
+    const CN = '0-9零〇一二三四五六七八九十百千万两壹贰叁肆伍陆柒捌玖拾佰仟';
+    const RE_CN   = new RegExp('^第\\s*[' + CN + ']+\\s*[章节節回卷篇集部]');
+    const RE_EN   = /^(?:Chapter|CHAPTER|chapter)\s*[0-9IVXLCivxlc]+/;
+    const RE_SPEC = /^(序章|序言|序|楔子|引子|前言|后记|尾声|终章|番外[0-9零一二三四五六七八九十百]*|完本感言|作者的话|正文)$/;
+
+    function isChapterTitle(t) {
+      if (!t || t.length > 40) return false;
+      if (RE_CN.test(t)) return true;
+      if (RE_EN.test(t)) return true;
+      if (RE_SPEC.test(t)) return true;
+      return false;
+    }
+
+    function chunkToChapters(paras, size) {
+      if (!paras.length) return [];
+      const out = [];
+      let buf = [], len = 0;
+      for (const p of paras) {
+        buf.push(p);
+        len += p.length;
+        if (len >= size) {
+          out.push({ title: '第 ' + (out.length + 1) + ' 节', paras: buf });
+          buf = []; len = 0;
+        }
+      }
+      if (buf.length) out.push({ title: '第 ' + (out.length + 1) + ' 节', paras: buf });
+      return out;
+    }
+
+    function parseChapters(raw) {
+      const text = raw.replace(/\r\n?/g, '\n').replace(/\u0000/g, '');
+      const lines = text.split('\n');
+
+      const chapters = [];
+      const preface = [];
+      let cur = null;
+
+      for (let i = 0; i < lines.length; i++) {
+        const t = lines[i].trim();
+        if (!t) continue;
+
+        if (isChapterTitle(t)) {
+          if (cur) chapters.push(cur);
+          cur = { title: t, paras: [] };
+        } else if (cur) {
+          cur.paras.push(t);
+        } else {
+          preface.push(t);
+        }
+      }
+      if (cur) chapters.push(cur);
+
+      // 一个章节都没识别出来 → 按字数切分
+      if (chapters.length === 0) {
+        return chunkToChapters(preface, 2500);
+      }
+      // 开头无章节的散段
+      if (preface.length) {
+        chapters.unshift({ title: '开始', paras: preface });
+      }
+      return chapters;
+    }
+
+    /* ==================== 渲染 ==================== */
+    function chapterHTML(i) {
+      const ch = state.chapters[i];
+      if (!ch) return '';
+      const parts = ['<section class="chapter" data-index="' + i + '" id="ch-' + i + '">'];
+      parts.push('<h2 class="ch-title">' + esc(ch.title) + '</h2>');
+      for (let p = 0; p < ch.paras.length; p++) {
+        parts.push('<p class="para" data-ch="' + i + '" data-p="' + p + '">' + esc(ch.paras[p]) + '</p>');
+      }
+      parts.push('</section>');
+      return parts.join('');
+    }
+
+    function renderRange(from, to) {
+      let html = '';
+      for (let i = from; i <= to; i++) html += chapterHTML(i);
+      els.content.innerHTML = html;
+      state.renderedStart = from;
+      state.renderedEnd = to;
+    }
+
+    function appendNext() {
+      if (state.renderedEnd >= state.chapters.length - 1) return false;
+      const i = state.renderedEnd + 1;
+      els.content.insertAdjacentHTML('beforeend', chapterHTML(i));
+      state.renderedEnd = i;
+      return true;
+    }
+
+    function prependPrev() {
+      if (state.renderedStart <= 0) return false;
+      const i = state.renderedStart - 1;
+      const before = els.content.offsetHeight;
+      els.content.insertAdjacentHTML('afterbegin', chapterHTML(i));
+      state.renderedStart = i;
+      const after = els.content.offsetHeight;
+      els.readerWrap.scrollTop += (after - before);
+      return true;
+    }
+
+    /** 内容不足一屏时自动补足 */
+    function fillViewport() {
+      let guard = 0;
+      while (
+        els.readerWrap.scrollHeight <= els.readerWrap.clientHeight + 60 &&
+        state.renderedEnd < state.chapters.length - 1 &&
+        guard++ < 30
+      ) {
+        if (!appendNext()) break;
+      }
+    }
+
+    /** 移除视口上方过远的章节，控制 DOM 体积 */
+    function pruneTop() {
+      let guard = 0;
+      while (
+        state.renderedEnd - state.renderedStart > MAX_RENDERED &&
+        state.current - state.renderedStart > 8 &&
+        guard++ < 10
+      ) {
+        const first = els.content.firstElementChild;
+        if (!first) break;
+        const h = first.offsetHeight;
+        first.remove();
+        state.renderedStart++;
+        els.readerWrap.scrollTop -= h;
+      }
+    }
+
+    /* ==================== 定位与导航 ==================== */
+    function gotoChapter(i, opts) {
+      opts = opts || {};
+      const n = state.chapters.length;
+      if (!n) return;
+      i = Math.max(0, Math.min(n - 1, i));
+
+      const to = Math.min(n - 1, i + WINDOW_AHEAD);
+      renderRange(i, to);
+      state.current = i;
+      els.empty.style.display = 'none';
+      els.readerWrap.scrollTop = 0;
+
+      fillViewport();
+
+      if (opts.para !== undefined && opts.para !== null && opts.para >= 0) {
+        const paraIdx = opts.para;
+        requestAnimationFrame(() => {
+          const el = els.content.querySelector('p[data-ch="' + i + '"][data-p="' + paraIdx + '"]');
+          if (el) {
+            if (opts.keyword) {
+              el.innerHTML = highlightHTML(state.chapters[i].paras[paraIdx], opts.keyword);
+            }
+            el.scrollIntoView({ block: 'center' });
+            el.classList.add('flash');
+            setTimeout(() => el.classList.remove('flash'), 1900);
+          }
+        });
+      }
+
+      updateActiveToc();
+      updateLabel();
+      updateNavButtons();
+    }
+
+    function updateLabel() {
+      const ch = state.chapters[state.current];
+      els.chapterLabel.textContent = ch
+        ? (state.current + 1) + ' / ' + state.chapters.length + ' · ' + ch.title
+        : '—';
+    }
+
+    function updateNavButtons() {
+      els.prevBtn.disabled = state.current <= 0;
+      els.nextBtn.disabled = state.current < 0 || state.current >= state.chapters.length - 1;
+    }
+
+    function updateActiveToc() {
+      const prev = els.tocList.querySelector('li.active');
+      if (prev) prev.classList.remove('active');
+      const el = els.tocList.querySelector('li[data-index="' + state.current + '"]');
+      if (!el) return;
+      el.classList.add('active');
+      const r = el.getBoundingClientRect();
+      const br = els.sideBody.getBoundingClientRect();
+      if (r.top < br.top || r.bottom > br.bottom) {
+        el.scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    /* ==================== 滚动处理 ==================== */
+    let scrollTicking = false;
+    els.readerWrap.addEventListener('scroll', () => {
+      if (scrollTicking) return;
+      scrollTicking = true;
+      requestAnimationFrame(() => {
+        scrollTicking = false;
+        handleScroll();
+      });
+    }, { passive: true });
+
+    function handleScroll() {
+      if (!state.chapters.length) return;
+      const wrap = els.readerWrap;
+
+      // 接近底部 → 追加下一章
+      if (wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 500) {
+        if (appendNext()) fillViewport();
+      }
+      // 接近顶部 → 插入上一章
+      if (wrap.scrollTop < 300 && state.renderedStart > 0) {
+        prependPrev();
+      }
+
+      pruneTop();
+      updateCurrentByScroll();
+    }
+
+    function updateCurrentByScroll() {
+      const secs = els.content.children;
+      if (!secs.length) return;
+      const wrapTop = els.readerWrap.getBoundingClientRect().top;
+
+      let idx = state.renderedStart;
+      for (let i = 0; i < secs.length; i++) {
+        const r = secs[i].getBoundingClientRect();
+        if (r.bottom > wrapTop + 24) {
+          idx = +secs[i].dataset.index;
+          break;
+        }
+        idx = +secs[i].dataset.index;
+      }
+
+      if (idx !== state.current) {
+        state.current = idx;
+        updateActiveToc();
+        updateLabel();
+        updateNavButtons();
+      }
+    }
+
+    /* ==================== 目录 ==================== */
+    function buildToc() {
+      const frag = document.createDocumentFragment();
+      state.chapters.forEach((ch, i) => {
+        const li = document.createElement('li');
+        li.className = 'titem';
+        li.dataset.index = i;
+        li.textContent = ch.title;
+        li.title = ch.title;
+        frag.appendChild(li);
+      });
+      els.tocList.innerHTML = '';
+      els.tocList.appendChild(frag);
+    }
+
+    els.tocList.addEventListener('click', e => {
+      const li = e.target.closest('li[data-index]');
+      if (!li) return;
+      gotoChapter(+li.dataset.index);
+      if (isNarrow()) els.app.classList.add('collapsed');
+    });
+
+    /* ==================== 搜索 ==================== */
+    function highlightHTML(text, kw) {
+      if (!kw) return esc(text);
+      const lower = text.toLowerCase();
+      const lkw = kw.toLowerCase();
+      let out = '', pos = 0, idx, count = 0;
+      while (count < 60) {
+        idx = lower.indexOf(lkw, pos);
+        if (idx === -1) break;
+        out += esc(text.slice(pos, idx)) +
+               '<mark>' + esc(text.slice(idx, idx + kw.length)) + '</mark>';
+        pos = idx + kw.length;
+        count++;
+      }
+      out += esc(text.slice(pos));
+      return out;
+    }
+
+    function makeSnippet(text, kw, radius) {
+      const i = text.toLowerCase().indexOf(kw.toLowerCase());
+      if (i === -1) return esc(text.slice(0, radius * 2));
+      const start = Math.max(0, i - radius);
+      const end = Math.min(text.length, i + kw.length + radius);
+      const s = (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+      return highlightHTML(s, kw);
+    }
+
+    function runSearch(kw) {
+      kw = (kw || '').trim();
+      state.keyword = kw;
+      els.searchList.innerHTML = '';
+      els.resultCount.textContent = '';
+
+      if (!kw) {
+        els.searchList.innerHTML = '<li class="hint-li">请输入关键词</li>';
+        return;
+      }
+      if (!state.chapters.length) {
+        els.searchList.innerHTML = '<li class="hint-li">请先打开一个 TXT 文件</li>';
+        return;
+      }
+
+      const lkw = kw.toLowerCase();
+      const results = [];
+
+      for (let ci = 0; ci < state.chapters.length && results.length < SEARCH_LIMIT; ci++) {
+        const ch = state.chapters[ci];
+
+        if (ch.title.toLowerCase().indexOf(lkw) !== -1) {
+          results.push({ ci: ci, pi: -1 });
+        }
+        for (let pi = 0; pi < ch.paras.length; pi++) {
+          if (ch.paras[pi].toLowerCase().indexOf(lkw) !== -1) {
+            results.push({ ci: ci, pi: pi });
+            if (results.length >= SEARCH_LIMIT) break;
+          }
+        }
+      }
+
+      els.resultCount.textContent = results.length ? '(' + results.length + ')' : '';
+
+      if (!results.length) {
+        els.searchList.innerHTML = '<li class="hint-li">未找到「' + esc(kw) + '」</li>';
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      results.forEach(r => {
+        const ch = state.chapters[r.ci];
+        const li = document.createElement('li');
+        li.className = 'sitem';
+
+        const snippet = r.pi >= 0 ? makeSnippet(ch.paras[r.pi], kw, 34) : esc(ch.title);
+        li.innerHTML = '<div class="s-ch">' + esc(ch.title) + '</div>' +
+                       '<div class="s-tx">' + snippet + '</div>';
+
+        li.addEventListener('click', () => {
+          if (r.pi >= 0) gotoChapter(r.ci, { para: r.pi, keyword: kw });
+          else gotoChapter(r.ci);
+          if (isNarrow()) els.app.classList.add('collapsed');
+        });
+
+        frag.appendChild(li);
+      });
+
+      els.searchList.appendChild(frag);
+    }
+
+    /* ==================== 标签页切换 ==================== */
+    function switchTab(name) {
+      document.querySelectorAll('.tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === name);
+      });
+      els.tocList.style.display = name === 'toc' ? '' : 'none';
+      els.searchList.style.display = name === 'search' ? '' : 'none';
+    }
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
+
+    /* ==================== 文件加载 ==================== */
+    function showLoading(txt) {
+      els.loadingText.textContent = txt;
+      els.loading.style.display = 'flex';
+    }
+    function hideLoading() {
+      els.loading.style.display = 'none';
+    }
+
+    async function loadFile(file) {
+      if (!file) return;
+      showLoading('读取文件中…');
+      try {
+        const buf = await file.arrayBuffer();
+
+        els.loadingText.textContent = '解析章节中…';
+        await nextFrame();
+
+        const text = decodeBuffer(buf);
+        const chapters = parseChapters(text);
+
+        if (!chapters.length) {
+          hideLoading();
+          alert('文件内容为空或无法解析。');
+          return;
+        }
+
+        // 重置状态
+        state.chapters = chapters;
+        state.current = -1;
+        state.renderedStart = 0;
+        state.renderedEnd = -1;
+        state.keyword = '';
+        state.fileName = file.name;
+
+        els.bookTitle.textContent = file.name.replace(/\.txt$/i, '');
+        document.title = els.bookTitle.textContent + ' - TXT 阅读器';
+        els.footInfo.textContent = '共 ' + chapters.length + ' 章';
+        els.searchInput.value = '';
+        els.searchList.innerHTML = '';
+        els.resultCount.textContent = '';
+        els.tocList.innerHTML = '';
+        els.empty.style.display = 'none';
+
+        buildToc();
+        switchTab('toc');
+
+        await nextFrame();
+        gotoChapter(0);
+
+        if (isNarrow()) els.app.classList.add('collapsed');
+      } catch (err) {
+        console.error(err);
+        alert('读取失败：' + (err && err.message ? err.message : err));
+      } finally {
+        hideLoading();
+      }
+    }
+
+    els.fileInput.addEventListener('change', e => {
+      const f = e.target.files && e.target.files[0];
+      if (f) loadFile(f);
+      e.target.value = ''; // 允许重复选择同一文件
+    });
+
+    /* ==================== 拖拽载入 ==================== */
+    let dragTimer = null;
+    ['dragenter', 'dragover'].forEach(ev => {
+      document.addEventListener(ev, e => {
+        e.preventDefault();
+        document.body.classList.add('dragging');
+        clearTimeout(dragTimer);
+        dragTimer = setTimeout(() => document.body.classList.remove('dragging'), 200);
+      });
+    });
+    ['dragleave', 'drop'].forEach(ev => {
+      document.addEventListener(ev, e => {
+        e.preventDefault();
+        if (ev === 'drop' || e.target === document.documentElement) {
+          document.body.classList.remove('dragging');
+        }
+      });
+    });
+    document.addEventListener('drop', e => {
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) loadFile(f);
+    });
+
+    /* ==================== 侧边栏 ==================== */
+    els.toggleSidebar.addEventListener('click', () => {
+      els.app.classList.toggle('collapsed');
+    });
+
+    /* ==================== 搜索交互 ==================== */
+    els.searchBtn.addEventListener('click', () => {
+      switchTab('search');
+      runSearch(els.searchInput.value);
+    });
+    els.searchInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        switchTab('search');
+        runSearch(els.searchInput.value);
+      }
+    });
+    let searchTimer = null;
+    els.searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        if (els.searchInput.value.trim().length >= 2) {
+          switchTab('search');
+          runSearch(els.searchInput.value);
+        }
+      }, 400);
+    });
+
+    /* ==================== 上一章 / 下一章 ==================== */
+    els.prevBtn.addEventListener('click', () => {
+      if (state.current > 0) gotoChapter(state.current - 1);
+    });
+    els.nextBtn.addEventListener('click', () => {
+      if (state.current < state.chapters.length - 1) gotoChapter(state.current + 1);
+    });
+
+    /* ==================== 快捷键 ==================== */
+    document.addEventListener('keydown', e => {
+      const tag = (e.target.tagName || '').toUpperCase();
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+      if (!state.chapters.length) return;
+
+      if (e.key === 'ArrowLeft') {
+        if (state.current > 0) gotoChapter(state.current - 1);
+        e.preventDefault();
+      } else if (e.key === 'ArrowRight') {
+        if (state.current < state.chapters.length - 1) gotoChapter(state.current + 1);
+        e.preventDefault();
+      } else if (e.key === 'Home') {
+        gotoChapter(0);
+        e.preventDefault();
+      } else if (e.key === 'End') {
+        gotoChapter(state.chapters.length - 1);
+        e.preventDefault();
+      } else if (e.key === '/') {
+        els.searchInput.focus();
+        e.preventDefault();
+      }
+    });
+
+    /* ==================== 初始化 ==================== */
+    if (isNarrow()) els.app.classList.add('collapsed');
+
+    window.addEventListener('resize', () => {
+      // 保证内容始终填满视口
+      if (state.chapters.length) fillViewport();
+    });
+
+  })();
+</script>
+</body>
+</html>
