@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>扑克娱乐场 · Poker Casino</title>
 <style>
   :root{
@@ -10,73 +10,77 @@
     --gold-2:#f2a600;
     --text:#eaf0ff;
     --muted:#8b93b5;
-    --panel:rgba(255,255,255,.055);
     --border:rgba(255,255,255,.11);
-    --felt:#0e6b47;
-    --felt-2:#062f1f;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   [hidden]{display:none !important;}
-  html,body{height:100%;}
+  html,body{height:100%;margin:0;padding:0;overflow:hidden;}
   body{
-    margin:0;
-    min-height:100vh;
+    height:100vh;
+    height:100dvh;
     font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
     background:radial-gradient(1100px 700px at 50% -15%,#241857 0%,#0f0a2e 55%,#05030f 100%);
     color:var(--text);
     display:flex;
     justify-content:center;
-    padding:14px;
+    padding:8px;
     -webkit-font-smoothing:antialiased;
-    overflow-x:hidden;
-  }
-  .app{
-    width:100%;
-    max-width:1020px;
-    display:flex;
-    flex-direction:column;
-    gap:12px;
   }
 
-  /* ---------- 顶栏 ---------- */
-  .topbar{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    flex-wrap:wrap;
+  /* =========================================================
+     主布局
+  ========================================================= */
+  .app{
+    width:100%;
+    max-width:1180px;
+    height:100%;
+    min-height:0;
+    display:grid;
+    grid-template-columns:clamp(66px,10vw,116px) minmax(0,1fr);
+    grid-template-rows:auto minmax(0,1fr);
+    grid-template-areas:
+      "topbar topbar"
+      "tabs   view";
+    gap:10px;
   }
-  .brand{
+
+  /* =========================================================
+     顶栏
+  ========================================================= */
+  .topbar{
+    grid-area:topbar;
     display:flex;
     align-items:center;
     gap:10px;
-    padding:6px 14px 6px 8px;
-    border-radius:14px;
+    min-height:0;
+  }
+  .brand{
+    display:flex;align-items:center;gap:9px;
+    padding:7px 15px 7px 8px;
+    border-radius:13px;
     background:rgba(0,0,0,.32);
     border:1px solid var(--border);
+    flex:0 0 auto;
   }
   .brand .logo{
-    width:36px;height:36px;border-radius:10px;
+    width:34px;height:34px;border-radius:9px;
     display:flex;align-items:center;justify-content:center;
-    font-size:19px;
+    font-size:18px;
     background:linear-gradient(145deg,#2b1b6b,#5a2fb0);
-    box-shadow:0 0 18px rgba(120,80,255,.4),inset 0 0 12px rgba(255,255,255,.12);
+    box-shadow:0 0 14px rgba(120,80,255,.4),inset 0 0 10px rgba(255,255,255,.12);
   }
   .brand .name{
-    font-size:15px;font-weight:800;letter-spacing:2px;
+    font-size:14px;font-weight:800;letter-spacing:1.8px;
     background:linear-gradient(180deg,#fff5cc,#f2a600);
     -webkit-background-clip:text;background-clip:text;color:transparent;
   }
-
   .balance-box{
-    flex:1;
-    min-width:140px;
+    flex:1 1 auto;min-width:0;
     padding:8px 16px;
-    border-radius:14px;
+    border-radius:13px;
     background:rgba(255,255,255,.06);
     border:1px solid var(--border);
-    display:flex;
-    align-items:baseline;
-    gap:10px;
+    display:flex;align-items:baseline;gap:9px;
     backdrop-filter:blur(6px);
   }
   .balance-box .label{
@@ -84,10 +88,11 @@
   }
   .balance-box .value{
     margin-left:auto;
-    font-size:21px;font-weight:800;
+    font-size:20px;font-weight:800;
     color:var(--gold);
     font-variant-numeric:tabular-nums;
     transition:color .25s;
+    white-space:nowrap;
   }
   @keyframes bump{
     0%{transform:scale(1);}
@@ -96,68 +101,94 @@
   }
   .balance-box .value.bump{animation:bump .34s cubic-bezier(.3,1.4,.5,1);}
 
-  /* ---------- 游戏切换标签 ---------- */
+  /* =========================================================
+     左侧标签栏（竖排）
+  ========================================================= */
   .tabs{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
+    grid-area:tabs;
+    display:flex;
+    flex-direction:column;
     gap:8px;
-    padding:8px;
-    border-radius:16px;
+    padding:9px;
+    border-radius:15px;
     background:rgba(0,0,0,.3);
     border:1px solid var(--border);
+    min-height:0;
+    overflow:hidden;
   }
   .tab{
-    padding:11px 6px;
+    flex:1 1 0;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    padding:6px 3px;
     border-radius:11px;
     border:1px solid rgba(255,255,255,.08);
     background:rgba(255,255,255,.04);
     color:var(--muted);
-    font-size:13px;
+    font-size:11px;
     font-weight:700;
     letter-spacing:1px;
+    line-height:1.15;
+    text-align:center;
     cursor:pointer;
     transition:all .18s ease;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:6px;
+    -webkit-tap-highlight-color:transparent;
   }
+  .tab .ico{font-size:19px;line-height:1;}
   .tab:hover{color:#c8d2f0;background:rgba(255,255,255,.08);}
-  .tab .ico{font-size:16px;line-height:1;}
   .tab.active{
     color:#2a1d00;
     background:linear-gradient(180deg,#ffe082,#ffb300);
     border-color:#ffe58a;
-    box-shadow:0 4px 18px rgba(255,180,0,.4);
+    box-shadow:0 3px 14px rgba(255,180,0,.4);
   }
 
-  /* ---------- 游戏视图容器 ---------- */
+  /* =========================================================
+     游戏视图容器
+  ========================================================= */
   .view{
-    border-radius:20px;
-    padding:16px;
+    grid-area:view;
+    min-width:0;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    border-radius:18px;
+    padding:12px;
     background:
       radial-gradient(ellipse at 50% 0%, rgba(30,160,110,.22) 0%, rgba(0,0,0,.42) 68%),
       rgba(0,0,0,.32);
     border:1px solid rgba(255,255,255,.08);
-    box-shadow:inset 0 0 90px rgba(0,0,0,.55), 0 14px 36px rgba(0,0,0,.5);
-    animation:viewIn .3s ease;
+    box-shadow:inset 0 0 90px rgba(0,0,0,.55), 0 10px 30px rgba(0,0,0,.5);
+    overflow:hidden auto;
+    animation:viewIn .28s ease;
   }
-  @keyframes viewIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  .view::-webkit-scrollbar{width:4px;}
+  .view::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+  @keyframes viewIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 
-  /* ---------- 通用卡牌 ---------- */
+  /* =========================================================
+     通用卡牌
+  ========================================================= */
   .card-row{
     display:flex;
-    gap:10px;
-    flex-wrap:wrap;
+    gap:7px;
+    flex-wrap:nowrap;
     align-items:center;
-    min-height:112px;
+    min-width:0;
+    /* 卡片行不含上下额外 padding，让卡片更紧凑 */
   }
   .card{
     position:relative;
-    width:74px;height:106px;
-    background:#fff;border-radius:9px;
+    height:var(--ch,70px);
+    width:calc(var(--ch,70px) * 0.7);
+    background:#fff;border-radius:7px;
     color:#151515;
-    box-shadow:0 5px 14px rgba(0,0,0,.5);
+    box-shadow:0 4px 12px rgba(0,0,0,.5);
     flex:0 0 auto;
     display:flex;align-items:center;justify-content:center;
     user-select:none;
@@ -167,16 +198,16 @@
     position:absolute;
     display:flex;flex-direction:column;align-items:center;line-height:1;
   }
-  .card .corner.tl{top:5px;left:7px;}
-  .card .corner.br{bottom:5px;right:7px;transform:rotate(180deg);}
-  .card .corner .rank{font-size:17px;font-weight:800;}
-  .card .corner .suit{font-size:12px;margin-top:2px;}
-  .card .big-suit{font-size:40px;line-height:1;opacity:.86;}
+  .card .corner.tl{top:5%;left:8%;}
+  .card .corner.br{bottom:5%;right:8%;transform:rotate(180deg);}
+  .card .corner .rank{font-size:calc(var(--ch,70px) * 0.22);font-weight:800;}
+  .card .corner .suit{font-size:calc(var(--ch,70px) * 0.15);margin-top:1px;}
+  .card .big-suit{font-size:calc(var(--ch,70px) * 0.52);line-height:1;opacity:.86;}
   .card.red{color:#d32f2f;}
   .card.back{
     background:repeating-linear-gradient(45deg,#153a8a 0 6px,#2450b8 6px 12px);
-    border:3px solid #fff;
-    box-shadow:0 5px 14px rgba(0,0,0,.5),inset 0 0 0 2px #0d2660;
+    border:2px solid #fff;
+    box-shadow:0 4px 12px rgba(0,0,0,.5),inset 0 0 0 2px #0d2660;
   }
   .card.slot{
     background:rgba(255,255,255,.05);
@@ -184,10 +215,10 @@
     box-shadow:none;
   }
   @keyframes dealIn{
-    from{transform:translateY(-70px) rotate(-10deg) scale(.75);opacity:0;}
+    from{transform:translateY(-60px) rotate(-10deg) scale(.78);opacity:0;}
     to{transform:none;opacity:1;}
   }
-  .card.deal{animation:dealIn .34s cubic-bezier(.2,.8,.3,1.2);}
+  .card.deal{animation:dealIn .32s cubic-bezier(.2,.8,.3,1.2);}
   @keyframes flipCard{
     0%{transform:rotateY(0deg);}
     50%{transform:rotateY(90deg) scale(.94);}
@@ -195,23 +226,26 @@
   }
   .card.flipping{animation:flipCard .4s ease-in-out;}
   @keyframes winGlow{
-    from{box-shadow:0 5px 14px rgba(0,0,0,.5);}
-    to{box-shadow:0 0 0 3px var(--gold),0 0 28px rgba(255,213,79,.65);}
+    from{box-shadow:0 4px 12px rgba(0,0,0,.5);}
+    to{box-shadow:0 0 0 3px var(--gold),0 0 22px rgba(255,213,79,.65);}
   }
   .card.winning{animation:winGlow .6s ease-in-out infinite alternate;}
 
-  /* ---------- 通用按钮/筹码 ---------- */
+  /* =========================================================
+     通用按钮/筹码（间距已放大）
+  ========================================================= */
   .btn{
-    padding:12px 22px;
-    border-radius:12px;
+    padding:11px 18px;
+    border-radius:11px;
     border:1px solid rgba(255,255,255,.16);
     background:rgba(255,255,255,.08);
     color:var(--text);
-    font-size:15px;
+    font-size:13px;
     font-weight:800;
-    letter-spacing:1.5px;
+    letter-spacing:1.2px;
     cursor:pointer;
     transition:transform .08s,background .15s,opacity .15s,box-shadow .2s;
+    -webkit-tap-highlight-color:transparent;
   }
   .btn:hover:not(:disabled){background:rgba(255,255,255,.16);}
   .btn:active:not(:disabled){transform:translateY(2px);}
@@ -220,39 +254,44 @@
     background:linear-gradient(180deg,#ffcf40,#f2a600);
     color:#2a1d00;
     border-color:#ffe58a;
-    box-shadow:0 5px 16px rgba(255,170,0,.32);
+    box-shadow:0 4px 14px rgba(255,170,0,.32);
   }
   .btn.primary:hover:not(:disabled){
     background:linear-gradient(180deg,#ffdd70,#ffb800);
-    box-shadow:0 7px 22px rgba(255,170,0,.48);
+    box-shadow:0 6px 20px rgba(255,170,0,.48);
   }
   .btn.ghost{background:rgba(255,255,255,.045);}
   .btn-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
-  .btn-row .btn{flex:1;min-width:110px;}
+  .btn-row .btn{flex:1 1 0;min-width:80px;}
 
   .chips{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
   .chip{
-    width:58px;height:58px;border-radius:50%;
+    width:50px;height:50px;border-radius:50%;
     border:none;cursor:pointer;color:#fff;
-    font-weight:800;font-size:13px;
-    box-shadow:0 4px 0 rgba(0,0,0,.42),inset 0 0 0 4px rgba(255,255,255,.26);
+    font-weight:800;font-size:12px;
+    box-shadow:0 3px 0 rgba(0,0,0,.42),inset 0 0 0 4px rgba(255,255,255,.26);
     transition:transform .08s,box-shadow .08s,filter .15s;
+    -webkit-tap-highlight-color:transparent;
+    flex:0 0 auto;
   }
   .chip:hover{filter:brightness(1.14);}
   .chip:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.42),inset 0 0 0 4px rgba(255,255,255,.26);}
   .c1{background:#1976d2}.c2{background:#2e7d32}.c3{background:#c62828}
   .c4{background:#6a1b9a}.c5{background:#ef6c00}.c6{background:#37474f}
-  .chip.all{background:#00838f;font-size:12px;}
+  .chip.all{background:#00838f;font-size:11px;}
 
-  /* ---------- 消息条 ---------- */
+  /* =========================================================
+     消息条
+  ========================================================= */
   .msg{
+    flex:0 0 auto;
     text-align:center;
-    padding:13px 12px;
-    font-size:15px;
+    padding:11px 14px;
+    font-size:13px;
     font-weight:700;
     letter-spacing:.5px;
-    min-height:50px;
-    border-radius:12px;
+    min-height:44px;
+    border-radius:11px;
     background:rgba(0,0,0,.28);
     border:1px solid var(--border);
     color:#c9d4ee;
@@ -260,19 +299,16 @@
     transition:color .2s,border-color .3s,box-shadow .3s;
   }
   .msg.win{
-    color:#7dffb0;
-    border-color:rgba(125,255,176,.35);
+    color:#7dffb0;border-color:rgba(125,255,176,.35);
     box-shadow:0 0 26px rgba(80,255,150,.14) inset;
     text-shadow:0 0 14px rgba(80,255,150,.4);
   }
   .msg.lose{
-    color:#ff9b9b;
-    border-color:rgba(255,120,120,.3);
+    color:#ff9b9b;border-color:rgba(255,120,120,.3);
     text-shadow:0 0 12px rgba(255,80,80,.3);
   }
   .msg.jackpot{
-    color:#ffe082;
-    border-color:rgba(255,213,79,.6);
+    color:#ffe082;border-color:rgba(255,213,79,.6);
     box-shadow:0 0 36px rgba(255,213,79,.28) inset;
     text-shadow:0 0 20px rgba(255,213,79,.6);
     animation:jackpotGlow 1s ease-in-out infinite alternate;
@@ -284,36 +320,59 @@
   @keyframes msgIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
   .msg.show{animation:msgIn .28s ease;}
 
-  /* ---------- 通用统计 ---------- */
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  /* =========================================================
+     通用统计（间距已放大）
+  ========================================================= */
+  .stats{
+    flex:0 0 auto;
+    display:grid;grid-template-columns:repeat(3,1fr);gap:9px;
+  }
   .stat{
-    padding:9px 14px;
-    border-radius:12px;
+    padding:8px 12px;border-radius:11px;
     background:rgba(255,255,255,.05);
     border:1px solid rgba(255,255,255,.09);
-    display:flex;flex-direction:column;gap:3px;
+    display:flex;flex-direction:column;gap:2px;
+    min-width:0;
   }
-  .stat .label{font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;}
+  .stat .label{
+    font-size:9px;letter-spacing:1.5px;color:var(--muted);
+    text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
   .stat .value{
-    font-size:18px;font-weight:800;
+    font-size:15px;font-weight:800;
     font-variant-numeric:tabular-nums;color:var(--text);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .stat .value.money{color:var(--gold);}
 
   /* =========================================================
-     21点
+     21点（卡片垂直间距已压缩）
   ========================================================= */
-  .bj-table{padding:6px 4px;}
-  .side{display:flex;flex-direction:column;gap:8px;}
+  #view-blackjack{ --ch: clamp(40px, min(9.5vh, 12vw), 78px); }
+  .bj-table{
+    flex:1 1 auto;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;    /* 原来是 space-between，造成大间距 */
+    gap:6px;
+    padding:2px;
+    border-radius:12px;
+    transition:box-shadow .35s ease;
+  }
+  .side{
+    display:flex;flex-direction:column;gap:2px;   /* 原来是 3px */
+    min-height:0;
+  }
   .hand-label{
-    font-size:12px;letter-spacing:3px;color:#9fd3bb;font-weight:700;
+    font-size:11px;letter-spacing:2px;color:#9fd3bb;font-weight:700;
     display:flex;align-items:center;gap:4px;
   }
   .score{
-    display:inline-block;min-width:30px;text-align:center;
-    padding:2px 9px;border-radius:20px;
+    display:inline-block;min-width:26px;text-align:center;
+    padding:1px 8px;border-radius:20px;
     background:rgba(255,255,255,.14);
-    font-size:13px;letter-spacing:0;
+    font-size:11px;letter-spacing:0;
     font-variant-numeric:tabular-nums;
     transition:background .2s;
   }
@@ -321,45 +380,56 @@
   .score.bj{background:#f9a825;color:#1a1a1a;}
   @keyframes scorePop{0%{transform:scale(1)}45%{transform:scale(1.22)}100%{transform:scale(1)}}
   .score.pop{animation:scorePop .3s cubic-bezier(.3,1.4,.5,1);}
-
-  .bj-table.result-win{box-shadow:inset 0 0 90px rgba(0,0,0,.55),0 0 0 1px rgba(125,255,176,.45),0 0 34px rgba(80,255,150,.2),0 14px 36px rgba(0,0,0,.5);}
-  .bj-table.result-lose{box-shadow:inset 0 0 90px rgba(0,0,0,.55),0 0 0 1px rgba(255,120,120,.4),0 0 34px rgba(255,80,80,.16),0 14px 36px rgba(0,0,0,.5);}
+  .bj-table.result-win{
+    box-shadow:0 0 0 1px rgba(125,255,176,.45),0 0 24px rgba(80,255,150,.2);
+  }
+  .bj-table.result-lose{
+    box-shadow:0 0 0 1px rgba(255,120,120,.4),0 0 24px rgba(255,80,80,.16);
+  }
+  .bj-controls{
+    flex:0 0 auto;
+    display:flex;flex-direction:column;gap:10px;   /* 原来是 6px */
+  }
 
   /* =========================================================
-     视频扑克
+     视频扑克（手牌区上下 padding 已压缩）
   ========================================================= */
+  #view-videopoker{ --ch: clamp(46px, min(14vh, 15vw), 112px); }
   .paytable{
+    flex:0 0 auto;
     display:grid;
     grid-template-columns:repeat(9,1fr);
-    gap:5px;
-    padding:9px;
-    border-radius:14px;
+    gap:4px;
+    padding:6px;
+    border-radius:11px;
     background:rgba(0,0,0,.3);
     border:1px solid var(--border);
-    box-shadow:inset 0 0 40px rgba(0,0,0,.5);
+    box-shadow:inset 0 0 30px rgba(0,0,0,.5);
   }
   .pay-cell{
     text-align:center;
-    padding:7px 3px;
-    border-radius:10px;
+    padding:4px 2px;
+    border-radius:7px;
     border:1px solid rgba(255,255,255,.06);
     background:rgba(255,255,255,.03);
     transition:all .25s ease;
+    min-width:0;
   }
   .pay-cell .pay-name{
-    font-size:10px;letter-spacing:.5px;color:var(--muted);
-    line-height:1.25;height:26px;
+    font-size:8.5px;letter-spacing:.2px;color:var(--muted);
+    line-height:1.15;height:20px;
     display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
   }
   .pay-cell .pay-value{
-    font-size:14px;font-weight:800;color:var(--text);
-    font-variant-numeric:tabular-nums;margin-top:2px;
+    font-size:11px;font-weight:800;color:var(--text);
+    font-variant-numeric:tabular-nums;margin-top:1px;
     transition:color .25s;
   }
   .pay-cell.active{
     border-color:var(--gold);
     background:linear-gradient(180deg,rgba(255,213,79,.22),rgba(255,213,79,.06));
-    box-shadow:0 0 18px rgba(255,213,79,.45),inset 0 0 12px rgba(255,213,79,.2);
+    box-shadow:0 0 14px rgba(255,213,79,.45),inset 0 0 10px rgba(255,213,79,.2);
   }
   .pay-cell.active .pay-name{color:#ffe9a8;}
   .pay-cell.active .pay-value{color:var(--gold);animation:pulseGold .7s ease-in-out infinite alternate;}
@@ -369,203 +439,291 @@
   }
 
   .vp-hand{
-    display:flex;justify-content:center;gap:12px;
-    padding:20px 10px 14px;
-    border-radius:18px;
+    flex:1 1 auto;
+    min-height:0;
+    display:flex;justify-content:center;align-items:center;
+    gap:9px;
+    padding:4px 10px 2px;      /* 原来是 10px 6px 4px —— 大幅压缩上下 */
+    border-radius:13px;
     background:radial-gradient(ellipse at 50% 0%,rgba(80,50,180,.28) 0%,rgba(0,0,0,.42) 70%),rgba(0,0,0,.35);
     border:1px solid rgba(255,255,255,.07);
-    box-shadow:inset 0 0 80px rgba(0,0,0,.6);
-    min-height:190px;
+    box-shadow:inset 0 0 60px rgba(0,0,0,.6);
+    overflow:hidden;
   }
-  .vp-slot{position:relative;padding-top:28px;cursor:pointer;user-select:none;transition:transform .15s;}
+  .vp-slot{
+    position:relative;
+    padding-top:18px;          /* 原来是 20px —— 保留一点给 hold 标签 */
+    cursor:pointer;user-select:none;
+    transition:transform .15s;
+    height:100%;
+    display:flex;
+    align-items:center;
+  }
   .vp-slot .hold-tag{
     position:absolute;top:0;left:50%;
     transform:translateX(-50%) translateY(4px);
-    padding:3px 11px;border-radius:20px;
-    font-size:10px;font-weight:800;letter-spacing:2px;
+    padding:2px 8px;border-radius:14px;
+    font-size:8.5px;font-weight:800;letter-spacing:1.2px;
     color:#2a1d00;background:linear-gradient(180deg,#ffe082,#ffb300);
-    box-shadow:0 3px 10px rgba(255,180,0,.45);
+    box-shadow:0 3px 8px rgba(255,180,0,.45);
     opacity:0;pointer-events:none;
     transition:opacity .18s,transform .18s;
+    white-space:nowrap;
   }
   .vp-slot.held .hold-tag{opacity:1;transform:translateX(-50%) translateY(0);}
-  .vp-slot:hover .card{transform:translateY(-4px);}
+  .vp-slot:hover .card{transform:translateY(-3px);}
   .vp-slot.held .card{
-    transform:translateY(-10px);
-    box-shadow:0 0 0 3px var(--gold),0 10px 26px rgba(255,180,0,.45);
+    transform:translateY(-8px);
+    box-shadow:0 0 0 3px var(--gold),0 8px 22px rgba(255,180,0,.45);
   }
-  .vp-slot .card{width:92px;height:134px;cursor:pointer;}
+  .vp-controls{
+    flex:0 0 auto;
+    display:flex;flex-direction:column;gap:10px;   /* 原来是 6px */
+  }
+  .vp-bet{
+    width:auto;height:auto;border-radius:10px;
+    padding:9px 12px;font-size:11px;
+    flex:1 1 0;
+    min-width:0;
+  }
 
   /* =========================================================
-     三张扑克
-     ========================================================= */
+     三张扑克（座位上下 padding 已压缩）
+  ========================================================= */
+  #view-threecard{ --ch: clamp(40px, min(10.5vh, 12vw), 84px); }
   .tcp-seat{
-    display:flex;flex-direction:column;gap:8px;
-    padding:12px 14px;border-radius:14px;
+    flex:1 1 0;
+    min-height:0;
+    display:flex;flex-direction:column;gap:2px;   /* 原来是 4px */
+    padding:5px 12px;                              /* 原来是 7px 10px */
+    border-radius:12px;
     background:rgba(0,0,0,.22);
     border:1px solid rgba(255,255,255,.07);
+    overflow:hidden;
   }
   .tcp-seat .seat-head{
-    display:flex;align-items:center;gap:10px;
-    font-size:12px;letter-spacing:3px;color:#9fd3bb;font-weight:700;
+    flex:0 0 auto;
+    display:flex;align-items:center;gap:8px;
+    font-size:11px;letter-spacing:2px;color:#9fd3bb;font-weight:700;
   }
   .tcp-seat .seat-hand{
-    font-size:12px;color:var(--muted);letter-spacing:1px;
+    font-size:11px;color:var(--muted);letter-spacing:.5px;
     margin-left:auto;
   }
   .tcp-seat .seat-hand.highlight{color:var(--gold);font-weight:700;}
+  .tcp-seat .card-row{
+    flex:1 1 auto;
+    align-items:center;
+    min-height:0;
+  }
   .tcp-seat.winning{
     border-color:rgba(125,255,176,.4);
-    box-shadow:0 0 24px rgba(80,255,150,.14);
+    box-shadow:0 0 20px rgba(80,255,150,.14);
   }
   .tcp-seat.losing{
     border-color:rgba(255,120,120,.3);
-    box-shadow:0 0 22px rgba(255,80,80,.12);
+    box-shadow:0 0 18px rgba(255,80,80,.12);
   }
   .tcp-payout{
-    display:grid;grid-template-columns:repeat(4,1fr);gap:7px;
-    padding:9px;border-radius:12px;
+    flex:0 0 auto;
+    display:grid;grid-template-columns:repeat(4,1fr);gap:6px;
+    padding:6px;border-radius:11px;
     background:rgba(0,0,0,.26);
     border:1px solid var(--border);
   }
   .tcp-payout .pc{
-    text-align:center;padding:6px 3px;border-radius:8px;
-    font-size:10px;letter-spacing:.5px;color:var(--muted);
+    text-align:center;padding:4px 2px;border-radius:7px;
+    font-size:8.5px;letter-spacing:.3px;color:var(--muted);
     background:rgba(255,255,255,.03);
     border:1px solid rgba(255,255,255,.05);
     transition:all .25s;
   }
-  .tcp-payout .pc strong{display:block;font-size:13px;color:var(--text);margin-top:2px;}
+  .tcp-payout .pc strong{display:block;font-size:11px;color:var(--text);margin-top:1px;}
   .tcp-payout .pc.active{
     color:#ffe9a8;border-color:var(--gold);
     background:linear-gradient(180deg,rgba(255,213,79,.2),rgba(255,213,79,.05));
-    box-shadow:0 0 14px rgba(255,213,79,.4);
+    box-shadow:0 0 12px rgba(255,213,79,.4);
   }
   .tcp-payout .pc.active strong{color:var(--gold);}
+  .tcp-controls{
+    flex:0 0 auto;
+    display:flex;flex-direction:column;gap:10px;   /* 原来是 6px */
+  }
 
   /* =========================================================
-     百家乐
-     ========================================================= */
+     百家乐（座位上下 padding 已压缩）
+  ========================================================= */
+  #view-baccarat{ --ch: clamp(40px, min(10.5vh, 12vw), 84px); }
   .bac-bets{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+    flex:0 0 auto;
+    display:grid;grid-template-columns:repeat(3,1fr);gap:9px;
   }
   .bac-bet{
-    padding:14px 8px;border-radius:14px;
+    padding:10px 6px;border-radius:12px;
     border:1px solid rgba(255,255,255,.12);
     background:rgba(255,255,255,.045);
     color:var(--text);font-weight:800;cursor:pointer;
-    display:flex;flex-direction:column;align-items:center;gap:4px;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
     transition:all .18s ease;
-    letter-spacing:1.5px;font-size:14px;
+    letter-spacing:1.2px;font-size:12px;
+    -webkit-tap-highlight-color:transparent;
   }
-  .bac-bet .sub{font-size:10px;color:var(--muted);letter-spacing:1px;font-weight:600;}
+  .bac-bet .sub{font-size:9px;color:var(--muted);letter-spacing:.8px;font-weight:600;}
   .bac-bet:hover{background:rgba(255,255,255,.1);}
   .bac-bet.active{
     background:linear-gradient(180deg,rgba(255,213,79,.85),rgba(242,166,0,.8));
     color:#2a1d00;border-color:#ffe58a;
-    box-shadow:0 0 22px rgba(255,180,0,.45);
+    box-shadow:0 0 18px rgba(255,180,0,.45);
   }
   .bac-bet.active .sub{color:#5a4000;}
-  .bac-bet.win{
-    box-shadow:0 0 0 2px #7dffb0,0 0 26px rgba(80,255,150,.5);
-  }
-  .bac-side{display:flex;flex-direction:column;gap:6px;}
-  .bac-side .total-badge{
-    display:inline-block;padding:2px 12px;border-radius:20px;
-    background:rgba(255,255,255,.14);font-size:13px;
+  .bac-bet.win{box-shadow:0 0 0 2px #7dffb0,0 0 22px rgba(80,255,150,.5);}
+  .total-badge{
+    display:inline-block;padding:1px 10px;border-radius:20px;
+    background:rgba(255,255,255,.14);font-size:12px;
     font-weight:800;font-variant-numeric:tabular-nums;
     transition:background .2s;
   }
-  .bac-side .total-badge.natural{background:#f9a825;color:#1a1a1a;}
+  .total-badge.natural{background:#f9a825;color:#1a1a1a;}
+  .bac-controls{
+    flex:0 0 auto;
+    display:flex;flex-direction:column;gap:10px;   /* 原来是 6px */
+  }
 
   /* =========================================================
      音效控制
-     ========================================================= */
+  ========================================================= */
   .audio-ctrl{
-    position:fixed;right:14px;bottom:14px;z-index:60;
-    display:flex;align-items:center;gap:8px;
-    padding:6px 12px 6px 6px;border-radius:26px;
+    position:fixed;right:10px;bottom:10px;z-index:60;
+    display:flex;align-items:center;gap:5px;
+    padding:4px 10px 4px 4px;border-radius:22px;
     border:1px solid rgba(255,255,255,.16);
     background:rgba(8,6,20,.78);
     backdrop-filter:blur(8px);
     box-shadow:0 6px 18px rgba(0,0,0,.55);
   }
   .sound-toggle{
-    width:38px;height:38px;border-radius:50%;
+    width:32px;height:32px;border-radius:50%;
     border:none;background:transparent;color:var(--text);
-    font-size:19px;line-height:1;cursor:pointer;
+    font-size:16px;line-height:1;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
     transition:transform .12s,opacity .18s;
+    -webkit-tap-highlight-color:transparent;
   }
   .sound-toggle:active{transform:scale(.9);}
   .sound-toggle.off{opacity:.45;}
   input[type="range"].vol{
     -webkit-appearance:none;appearance:none;
-    width:88px;height:4px;border-radius:2px;
+    width:74px;height:4px;border-radius:2px;
     background:rgba(255,255,255,.22);outline:none;cursor:pointer;
   }
   input[type="range"].vol::-webkit-slider-thumb{
     -webkit-appearance:none;appearance:none;
-    width:14px;height:14px;border-radius:50%;
+    width:13px;height:13px;border-radius:50%;
     background:var(--gold);box-shadow:0 0 8px rgba(255,213,79,.85);
     cursor:pointer;
   }
   input[type="range"].vol::-moz-range-thumb{
-    width:14px;height:14px;border:none;border-radius:50%;
+    width:13px;height:13px;border:none;border-radius:50%;
     background:var(--gold);box-shadow:0 0 8px rgba(255,213,79,.85);
     cursor:pointer;
   }
 
-  /* ---------- 响应式 ---------- */
-  @media (max-width:820px){
-    .paytable{grid-template-columns:repeat(5,1fr);}
-  }
-  @media (max-width:600px){
-    body{padding:9px;}
-    .brand .name{font-size:13px;letter-spacing:1px;}
-    .balance-box .value{font-size:17px;}
-    .tabs{grid-template-columns:repeat(2,1fr);gap:6px;}
-    .tab{font-size:12px;padding:10px 4px;}
+  /* =========================================================
+     响应式
+  ========================================================= */
+  @media (max-width:720px){
+    .brand .name{display:none;}
+    .brand{padding:6px 10px 6px 6px;}
+    .brand .logo{width:28px;height:28px;font-size:15px;}
+    .balance-box{padding:6px 12px;}
+    .balance-box .label{font-size:9px;letter-spacing:1px;}
+    .balance-box .value{font-size:16px;}
 
-    .view{padding:11px;border-radius:16px;}
-    .card{width:52px;height:76px;border-radius:6px;}
-    .card .corner.tl{top:3px;left:4px;}
-    .card .corner.br{bottom:3px;right:4px;}
-    .card .corner .rank{font-size:12px;}
-    .card .corner .suit{font-size:9px;margin-top:1px;}
-    .card .big-suit{font-size:26px;}
-    .card-row{min-height:82px;gap:6px;}
+    .app{grid-template-columns:clamp(58px,14vw,88px) minmax(0,1fr);gap:8px;}
+    .tabs{padding:6px;gap:6px;}
+    .tab{font-size:10px;letter-spacing:.5px;padding:5px 2px;}
+    .tab .ico{font-size:16px;}
 
-    .vp-slot .card{width:56px;height:84px;}
-    .vp-hand{gap:6px;padding:16px 5px 10px;min-height:150px;}
-    .vp-slot .hold-tag{font-size:9px;padding:2px 8px;letter-spacing:1px;}
-    .vp-slot{padding-top:23px;}
-
-    .paytable{grid-template-columns:repeat(3,1fr);gap:4px;padding:7px;}
-    .pay-cell{padding:5px 3px;}
-    .pay-cell .pay-name{font-size:9px;height:22px;}
-    .pay-cell .pay-value{font-size:12px;}
-
-    .msg{font-size:13px;min-height:44px;padding:9px;}
-    .stats{grid-template-columns:repeat(3,1fr);gap:6px;}
-    .stat{padding:7px 9px;}
-    .stat .label{font-size:9px;letter-spacing:1px;}
-    .stat .value{font-size:14px;}
-    .btn{font-size:13px;padding:11px 14px;letter-spacing:1px;}
-    .chip{width:48px;height:48px;font-size:11px;}
+    .view{padding:10px;border-radius:14px;gap:8px;}
+    .msg{font-size:11px;min-height:38px;padding:8px 10px;}
+    .stats{gap:7px;}
+    .stat{padding:6px 9px;}
+    .stat .label{font-size:8px;letter-spacing:1px;}
+    .stat .value{font-size:13px;}
+    .btn{font-size:11px;padding:9px 12px;letter-spacing:.8px;}
+    .btn-row{gap:8px;}
+    .btn-row .btn{min-width:70px;}
+    .chip{width:42px;height:42px;font-size:10px;}
     .chips{gap:7px;}
-    .bac-bet{font-size:12px;padding:11px 5px;}
-    .bac-bet .sub{font-size:9px;}
-    .tcp-payout{grid-template-columns:repeat(2,1fr);}
-    .audio-ctrl{right:10px;bottom:10px;}
-    input[type="range"].vol{width:66px;}
+
+    .hand-label{font-size:10px;letter-spacing:1.5px;}
+    .score{font-size:10px;padding:1px 6px;min-width:22px;}
+
+    .paytable{grid-template-columns:repeat(5,1fr);gap:3px;padding:4px;}
+    .pay-cell .pay-name{font-size:7.5px;height:18px;}
+    .pay-cell .pay-value{font-size:10px;}
+
+    .vp-hand{gap:5px;padding:3px 5px 2px;}
+    .vp-slot{padding-top:14px;}
+    .vp-slot .hold-tag{font-size:7.5px;padding:1px 6px;letter-spacing:1px;}
+    .vp-bet{padding:8px 7px;font-size:10px;}
+
+    .tcp-seat{padding:4px 9px;}
+    .tcp-seat .seat-head{font-size:10px;letter-spacing:1.5px;}
+    .tcp-payout{grid-template-columns:repeat(4,1fr);gap:3px;padding:5px;}
+    .tcp-payout .pc{font-size:7.5px;padding:3px 1px;}
+    .tcp-payout .pc strong{font-size:10px;}
+
+    .bac-bet{font-size:11px;padding:8px 4px;}
+    .bac-bet .sub{font-size:8px;}
+
+    .audio-ctrl{right:8px;bottom:8px;}
+    input[type="range"].vol{width:56px;}
+    .sound-toggle{width:28px;height:28px;font-size:14px;}
+
+    .bj-controls, .vp-controls, .tcp-controls, .bac-controls{gap:8px;}
+  }
+  @media (max-width:430px){
+    .paytable{grid-template-columns:repeat(3,1fr);}
+    .app{grid-template-columns:56px minmax(0,1fr);}
+    .tab{font-size:9px;letter-spacing:0;}
+    .tab .ico{font-size:14px;}
+  }
+
+  /* 矮屏进一步压缩卡片，但保留 UI 间距 */
+  @media (max-height:600px){
+    .msg{min-height:34px;padding:7px 10px;font-size:11px;}
+    .stat{padding:5px 9px;}
+    .stat .label{font-size:7.5px;}
+    .stat .value{font-size:12px;}
+    .btn{padding:9px 12px;font-size:11px;letter-spacing:.8px;}
+    .chip{width:40px;height:40px;font-size:9.5px;}
+    .hand-label{font-size:10px;letter-spacing:1.5px;}
+    #view-blackjack{ --ch: clamp(36px, min(8.5vh, 11vw), 66px); }
+    #view-videopoker{ --ch: clamp(40px, min(11vh, 13vw), 90px); }
+    #view-threecard{ --ch: clamp(36px, min(9vh, 11vw), 70px); }
+    #view-baccarat{ --ch: clamp(36px, min(9vh, 11vw), 70px); }
+    .tcp-seat{padding:4px 9px;}
+    .view{gap:8px;padding:10px;}
+  }
+  @media (max-height:480px){
+    .msg{min-height:30px;padding:6px 8px;font-size:10px;}
+    .stat{padding:4px 7px;}
+    .stat .label{font-size:7px;}
+    .stat .value{font-size:11px;}
+    .btn{padding:8px 10px;font-size:10px;letter-spacing:.5px;}
+    .chip{width:36px;height:36px;font-size:9px;}
+    .hand-label{font-size:9px;letter-spacing:1px;}
+    #view-blackjack{ --ch: clamp(32px, min(7.5vh, 10vw), 56px); }
+    #view-videopoker{ --ch: clamp(34px, min(10vh, 11vw), 76px); }
+    #view-threecard{ --ch: clamp(32px, min(8vh, 10vw), 58px); }
+    #view-baccarat{ --ch: clamp(32px, min(8vh, 10vw), 58px); }
   }
 </style>
 </head>
 <body>
 <div class="app">
 
-  <!-- 顶栏 -->
   <div class="topbar">
     <div class="brand">
       <div class="logo">♠</div>
@@ -577,17 +735,14 @@
     </div>
   </div>
 
-  <!-- 游戏切换 -->
   <div class="tabs" id="tabs">
     <button class="tab active" data-game="blackjack"><span class="ico">🃏</span>21点</button>
-    <button class="tab" data-game="videopoker"><span class="ico">🎰</span>视频扑克</button>
-    <button class="tab" data-game="threecard"><span class="ico">🂡</span>三张扑克</button>
-    <button class="tab" data-game="baccarat"><span class="ico">🎴</span>百家乐</button>
+    <button class="tab" data-game="videopoker"><span class="ico">🎰</span>视频</button>
+    <button class="tab" data-game="threecard"><span class="ico">🂡</span>三张</button>
+    <button class="tab" data-game="baccarat"><span class="ico">🎴</span>百家</button>
   </div>
 
-  <!-- ========================================================
-       21点
-  ======================================================== -->
+  <!-- ============ 21点 ============ -->
   <div class="view" id="view-blackjack">
     <div class="bj-table" id="bjTable">
       <div class="side">
@@ -603,9 +758,9 @@
       </div>
     </div>
 
-    <div style="margin-top:14px;">
+    <div class="bj-controls">
       <div id="bjBetPanel">
-        <div class="chips" style="margin-bottom:12px;">
+        <div class="chips">
           <button class="chip c1" data-bj="200">200</button>
           <button class="chip c2" data-bj="500">500</button>
           <button class="chip c3" data-bj="1000">1K</button>
@@ -614,7 +769,7 @@
           <button class="chip c6" data-bj="10000">10K</button>
           <button class="chip all" id="bjAllIn">全下</button>
         </div>
-        <div class="btn-row">
+        <div class="btn-row" style="margin-top:10px;">
           <button class="btn ghost" id="bjClear">清除下注</button>
           <button class="btn primary" id="bjDeal" disabled>开始发牌</button>
         </div>
@@ -628,38 +783,30 @@
         </div>
       </div>
     </div>
-
-    <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:11px;line-height:1.7;">
-      单注最低 200 ｜ 黑杰克赔率 1.5 倍 ｜ 庄家 17 点停牌 ｜ 6 副牌<br>
-      快捷键：H 要牌 ｜ S 停牌 ｜ D 加倍 ｜ Enter 发牌
-    </div>
   </div>
 
-  <!-- ========================================================
-       视频扑克
-  ======================================================== -->
+  <!-- ============ 视频扑克 ============ -->
   <div class="view" id="view-videopoker" hidden>
     <div class="paytable" id="vpPaytable"></div>
-    <div class="vp-hand" id="vpHand" style="margin-top:12px;"></div>
+    <div class="vp-hand" id="vpHand"></div>
+    <div class="msg" id="vpMsg">选择下注，点击「发牌」开始</div>
 
-    <div class="msg" id="vpMsg" style="margin-top:12px;">选择下注，点击「发牌」开始</div>
-
-    <div style="margin-top:12px;">
+    <div class="vp-controls">
       <div class="stats">
         <div class="stat"><span class="label">本局下注</span><span class="value money" id="vpBetDisplay">100</span></div>
         <div class="stat"><span class="label">本局赢得</span><span class="value" id="vpWinDisplay">0</span></div>
         <div class="stat"><span class="label">牌型</span><span class="value" id="vpHandName">-</span></div>
       </div>
 
-      <div id="vpBetControls" style="margin-top:12px;">
-        <div class="chips" style="margin-bottom:12px;">
-          <button class="chip c1 vp-bet active" data-vp="1" style="width:auto;height:auto;border-radius:12px;padding:11px 14px;font-size:12px;">1 注</button>
-          <button class="chip c2 vp-bet" data-vp="2" style="width:auto;height:auto;border-radius:12px;padding:11px 14px;font-size:12px;">2 注</button>
-          <button class="chip c3 vp-bet" data-vp="3" style="width:auto;height:auto;border-radius:12px;padding:11px 14px;font-size:12px;">3 注</button>
-          <button class="chip c4 vp-bet" data-vp="4" style="width:auto;height:auto;border-radius:12px;padding:11px 14px;font-size:12px;">4 注</button>
-          <button class="chip c5 vp-bet" data-vp="5" style="width:auto;height:auto;border-radius:12px;padding:11px 14px;font-size:12px;">5 注</button>
+      <div id="vpBetControls">
+        <div class="chips">
+          <button class="chip c1 vp-bet active" data-vp="1">1 注</button>
+          <button class="chip c2 vp-bet" data-vp="2">2 注</button>
+          <button class="chip c3 vp-bet" data-vp="3">3 注</button>
+          <button class="chip c4 vp-bet" data-vp="4">4 注</button>
+          <button class="chip c5 vp-bet" data-vp="5">5 注</button>
         </div>
-        <div class="btn-row">
+        <div class="btn-row" style="margin-top:10px;">
           <button class="btn primary" id="vpDeal">发牌</button>
         </div>
       </div>
@@ -668,7 +815,6 @@
         <div class="btn-row">
           <button class="btn primary" id="vpDraw">换 牌</button>
         </div>
-        <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:9px;">点击牌面切换保留</div>
       </div>
 
       <div id="vpRestartControls" hidden>
@@ -679,11 +825,9 @@
     </div>
   </div>
 
-  <!-- ========================================================
-       三张扑克
-  ======================================================== -->
+  <!-- ============ 三张扑克 ============ -->
   <div class="view" id="view-threecard" hidden>
-    <div class="tcp-payout" id="tcpPayout" style="margin-bottom:12px;">
+    <div class="tcp-payout" id="tcpPayout">
       <div class="pc" data-tcp="straightFlush">同花顺<strong>5:1</strong></div>
       <div class="pc" data-tcp="threeOfAKind">三条<strong>4:1</strong></div>
       <div class="pc" data-tcp="straight">顺子<strong>1:1</strong></div>
@@ -695,29 +839,29 @@
       <div class="card-row" id="tcpDealerCards"></div>
     </div>
 
-    <div class="msg" id="tcpMsg" style="margin:12px 0;">选择底注，点击「发牌」开始</div>
+    <div class="msg" id="tcpMsg">选择底注，点击「发牌」开始</div>
 
     <div class="tcp-seat" id="tcpPlayerSeat">
       <div class="seat-head">玩家 PLAYER <span class="seat-hand" id="tcpPlayerHand"></span></div>
       <div class="card-row" id="tcpPlayerCards"></div>
     </div>
 
-    <div style="margin-top:14px;">
-      <div class="stats" style="margin-bottom:12px;">
+    <div class="tcp-controls">
+      <div class="stats">
         <div class="stat"><span class="label">底注</span><span class="value money" id="tcpAnteDisplay">0</span></div>
         <div class="stat"><span class="label">加注</span><span class="value money" id="tcpPlayDisplay">0</span></div>
         <div class="stat"><span class="label">本局赢得</span><span class="value" id="tcpWinDisplay">0</span></div>
       </div>
 
       <div id="tcpBetPanel">
-        <div class="chips" style="margin-bottom:12px;">
+        <div class="chips">
           <button class="chip c1" data-tcp="200">200</button>
           <button class="chip c2" data-tcp="500">500</button>
           <button class="chip c3" data-tcp="1000">1K</button>
           <button class="chip c4" data-tcp="2000">2K</button>
           <button class="chip c5" data-tcp="5000">5K</button>
         </div>
-        <div class="btn-row">
+        <div class="btn-row" style="margin-top:10px;">
           <button class="btn primary" id="tcpDeal" disabled>发牌</button>
         </div>
       </div>
@@ -727,7 +871,6 @@
           <button class="btn ghost" id="tcpFold">弃牌 Fold</button>
           <button class="btn primary" id="tcpPlay">加注 Play</button>
         </div>
-        <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:9px;">加注金额等于底注；庄家需 Q 高或更好才能继续</div>
       </div>
 
       <div id="tcpRestartPanel" hidden>
@@ -738,37 +881,35 @@
     </div>
   </div>
 
-  <!-- ========================================================
-       百家乐
-  ======================================================== -->
+  <!-- ============ 百家乐 ============ -->
   <div class="view" id="view-baccarat" hidden>
-    <div class="bac-bets" id="bacBets" style="margin-bottom:14px;">
+    <div class="bac-bets" id="bacBets">
       <button class="bac-bet" data-bac="player">闲 PLAYER<span class="sub">1 : 1</span></button>
       <button class="bac-bet" data-bac="banker">庄 BANKER<span class="sub">0.95 : 1</span></button>
       <button class="bac-bet" data-bac="tie">和 TIE<span class="sub">8 : 1</span></button>
     </div>
 
-    <div class="tcp-seat" style="margin-bottom:10px;">
+    <div class="tcp-seat">
       <div class="seat-head">闲 PLAYER <span class="seat-hand"><span class="total-badge" id="bacPlayerTotal">-</span></span></div>
       <div class="card-row" id="bacPlayerCards"></div>
     </div>
 
-    <div class="msg" id="bacMsg" style="margin:10px 0;">选择下注方向，点击「发牌」开始</div>
+    <div class="msg" id="bacMsg">选择下注方向，点击「发牌」开始</div>
 
     <div class="tcp-seat">
       <div class="seat-head">庄 BANKER <span class="seat-hand"><span class="total-badge" id="bacBankerTotal">-</span></span></div>
       <div class="card-row" id="bacBankerCards"></div>
     </div>
 
-    <div style="margin-top:14px;">
-      <div class="stats" style="margin-bottom:12px;">
+    <div class="bac-controls">
+      <div class="stats">
         <div class="stat"><span class="label">本局下注</span><span class="value money" id="bacBetDisplay">0</span></div>
         <div class="stat"><span class="label">押注方向</span><span class="value" id="bacSideDisplay">-</span></div>
         <div class="stat"><span class="label">本局赢得</span><span class="value" id="bacWinDisplay">0</span></div>
       </div>
 
       <div id="bacBetPanel">
-        <div class="chips" style="margin-bottom:12px;">
+        <div class="chips">
           <button class="chip c1" data-bacv="200">200</button>
           <button class="chip c2" data-bacv="500">500</button>
           <button class="chip c3" data-bacv="1000">1K</button>
@@ -776,7 +917,7 @@
           <button class="chip c5" data-bacv="5000">5K</button>
           <button class="chip c6" data-bacv="10000">10K</button>
         </div>
-        <div class="btn-row">
+        <div class="btn-row" style="margin-top:10px;">
           <button class="btn ghost" id="bacClear">清除下注</button>
           <button class="btn primary" id="bacDeal" disabled>发牌</button>
         </div>
@@ -788,15 +929,10 @@
         </div>
       </div>
     </div>
-
-    <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:11px;line-height:1.7;">
-      8 副牌 ｜ 闲 0-5 补牌，6-7 停牌 ｜ 庄家按标准规则补牌 ｜ 天生 8/9 直接结算
-    </div>
   </div>
 
 </div>
 
-<!-- 音效控制 -->
 <div class="audio-ctrl">
   <button class="sound-toggle" id="soundBtn" title="音效开关（M）">🔊</button>
   <input type="range" class="vol" id="volRange" min="0" max="100" step="1" value="80" title="音量">
@@ -807,7 +943,7 @@
   'use strict';
 
   /* ============================================================
-     音效引擎（Web Audio 合成，无外部资源）
+     音效引擎
   ============================================================ */
   const Sound = (function () {
     let ctx = null, master = null, comp = null, noiseBuf = null;
@@ -818,7 +954,7 @@
       muted = localStorage.getItem('casino_muted') === '1';
       const v = parseFloat(localStorage.getItem('casino_vol'));
       if (!isNaN(v) && v >= 0 && v <= 1) volume = v;
-    } catch (e) { /* ignore */ }
+    } catch (e) {}
 
     function ensure() {
       if (muted) return null;
@@ -895,12 +1031,12 @@
       get volume() { return volume; },
       setVolume(v) {
         volume = Math.min(1, Math.max(0, v));
-        try { localStorage.setItem('casino_vol', String(volume)); } catch (e) { /* ignore */ }
+        try { localStorage.setItem('casino_vol', String(volume)); } catch (e) {}
         if (master) master.gain.value = volume;
       },
       toggle() {
         muted = !muted;
-        try { localStorage.setItem('casino_muted', muted ? '1' : '0'); } catch (e) { /* ignore */ }
+        try { localStorage.setItem('casino_muted', muted ? '1' : '0'); } catch (e) {}
         if (!muted) { ensure(); this.click(); }
         return muted;
       },
@@ -1029,7 +1165,6 @@
   }
 
   function cardHTML(card) {
-    const red = card.color === 'r';
     return (
       '<span class="corner tl">' +
         '<span class="rank">' + card.rank + '</span>' +
@@ -1077,8 +1212,6 @@
     }
   }
 
-  function onBalance(fn) { balanceListeners.push(fn); }
-
   function setBalance(v, bump) {
     balance = v;
     updateBalanceUI(bump);
@@ -1101,21 +1234,17 @@
   };
 
   let currentGame = 'blackjack';
-  const gameHooks = {};   // 每个游戏可注册 onEnter / onLeave
+  const gameHooks = {};
 
   function switchGame(name) {
     if (name === currentGame) return;
-    // 通知旧游戏离开
     if (gameHooks[currentGame] && gameHooks[currentGame].onLeave) {
       gameHooks[currentGame].onLeave();
     }
-    // 隐藏所有视图
     for (const k in views) views[k].hidden = true;
     views[name].hidden = false;
-    // 更新标签
     tabs.forEach(t => t.classList.toggle('active', t.dataset.game === name));
     currentGame = name;
-    // 通知新游戏进入
     if (gameHooks[name] && gameHooks[name].onEnter) {
       gameHooks[name].onEnter();
     }
@@ -1153,10 +1282,8 @@
   }, { passive: true });
 
   /* ============================================================
-     ============================================================
      游戏 1：21点
-     ============================================================
-     ============================================================ */
+  ============================================================ */
   (function Blackjack() {
     const MIN_BET = 200;
     const DECKS = 6;
@@ -1165,7 +1292,7 @@
     let playerHand = [];
     let dealerHand = [];
     let bet = 0;
-    let state = 'bet';   // bet | playing | dealer | over
+    let state = 'bet';
     let busy = false;
 
     const tableEl = $('bjTable');
@@ -1183,9 +1310,7 @@
     const clearBtn = $('bjClear');
     const allInBtn = $('bjAllIn');
 
-    function newShoe() {
-      deck = makeShoe(DECKS);
-    }
+    function newShoe() { deck = makeShoe(DECKS); }
     function drawCard() {
       if (deck.length < 20) newShoe();
       return deck.pop();
@@ -1209,7 +1334,6 @@
     }
 
     function updateScores() {
-      // 玩家
       let pTxt;
       if (!playerHand.length) {
         pTxt = '-'; playerScoreEl.className = 'score';
@@ -1224,7 +1348,6 @@
         if (pTxt !== '-') bump(playerScoreEl);
       }
 
-      // 庄家
       const visible = dealerHand.filter(c => !c.hidden);
       let dTxt;
       if (!visible.length) {
@@ -1293,7 +1416,7 @@
       }
       updateScores();
       refreshButtons();
-      await sleep(340);
+      await sleep(320);
     }
 
     function revealHole() {
@@ -1411,13 +1534,13 @@
       actionPanel.hidden = true;
       refreshButtons();
       setMsg('庄家行动…');
-      await sleep(400);
+      await sleep(380);
       revealHole();
-      await sleep(450);
+      await sleep(420);
       while (handInfo(dealerHand).total < 17) {
         await dealTo('dealer');
       }
-      await sleep(350);
+      await sleep(320);
       await endRound();
     }
 
@@ -1459,7 +1582,7 @@
       if (payout > 0) adjustBalance(payout, true);
       setMsg(msg, cls);
 
-      await sleep(2000);
+      await sleep(1900);
 
       playerHand = [];
       dealerHand = [];
@@ -1476,27 +1599,6 @@
       setMsg('请下注（每次最少 200）');
     }
 
-    function reset() {
-      if (busy) return;
-      Sound.click();
-      setBalance(START_BALANCE, true);
-      bet = 0;
-      state = 'bet';
-      busy = false;
-      playerHand = [];
-      dealerHand = [];
-      playerCardsEl.innerHTML = '';
-      dealerCardsEl.innerHTML = '';
-      setResult(null);
-      newShoe();
-      updateScores();
-      betPanel.hidden = false;
-      actionPanel.hidden = true;
-      refreshButtons();
-      setMsg('已重置资金，请下注（每次最少 200）');
-    }
-
-    // 事件
     document.querySelectorAll('.chip[data-bj]').forEach(btn => {
       btn.addEventListener('click', () => addBet(Number(btn.dataset.bj)));
     });
@@ -1514,18 +1616,15 @@
     standBtn.addEventListener('click', onStand);
     doubleBtn.addEventListener('click', onDouble);
 
-    // 初始化
     newShoe();
     updateScores();
     refreshButtons();
 
-    // 注册：进入时刷新按钮（资金可能在别的游戏里变了）
     gameHooks.blackjack = {
       onEnter: () => { refreshButtons(); },
       onLeave: () => {}
     };
 
-    // 键盘
     document.addEventListener('keydown', e => {
       if (currentGame !== 'blackjack') return;
       if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -1535,16 +1634,11 @@
       else if (k === 'd' && !doubleBtn.disabled) { e.preventDefault(); onDouble(); }
       else if (k === 'enter' && !dealBtn.disabled) { e.preventDefault(); startRound(); }
     });
-
-    // 供外部调用
-    window.__bjReset = reset;
   })();
 
   /* ============================================================
-     ============================================================
-     游戏 2：视频扑克 Jacks or Better
-     ============================================================
-     ============================================================ */
+     游戏 2：视频扑克
+  ============================================================ */
   (function VideoPoker() {
     const CHIP = 100;
     const PAYTABLE = [
@@ -1567,7 +1661,7 @@
     let deck = [];
     let hand = [];
     let held = [false, false, false, false, false];
-    let bet = 1;      // 1~5 注
+    let bet = 1;
     let state = 'bet';
     let busy = false;
 
@@ -1751,7 +1845,7 @@
         hand.push(drawCard());
         renderCard(i, true);
         Sound.deal();
-        await sleep(150);
+        await sleep(140);
       }
 
       state = 'hold';
@@ -1779,7 +1873,7 @@
 
       if (toReplace.length === 0) {
         setMsg('全部保留，直接结算…');
-        await sleep(400);
+        await sleep(380);
         await settle();
         return;
       }
@@ -1789,18 +1883,18 @@
         slot.querySelector('.card').classList.add('flipping');
       });
       Sound.swap();
-      await sleep(210);
+      await sleep(200);
 
       toReplace.forEach(i => {
         hand[i] = drawCard();
         renderCard(i, false);
       });
-      await sleep(230);
+      await sleep(220);
       toReplace.forEach(i => {
         const slot = handEl.querySelector('.vp-slot[data-index="' + i + '"]');
         slot.querySelector('.card').classList.remove('flipping');
       });
-      await sleep(150);
+      await sleep(140);
       await settle();
     }
 
@@ -1832,11 +1926,10 @@
         setMsg('没有中奖，再试一次', 'lose');
       }
 
-      await sleep(2300);
+      await sleep(2200);
       resetForNewRound();
     }
 
-    // 下注按钮
     document.querySelectorAll('.vp-bet').forEach(btn => {
       btn.addEventListener('click', () => {
         if (state !== 'bet' || busy) return;
@@ -1858,7 +1951,6 @@
       setMsg('已重置资金，选择下注开始');
     });
 
-    // 键盘
     document.addEventListener('keydown', e => {
       if (currentGame !== 'videopoker') return;
       if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -1883,7 +1975,6 @@
       }
     });
 
-    // 初始化
     buildPaytable();
     buildHandSlots();
     updatePaytableAmounts();
@@ -1896,10 +1987,8 @@
   })();
 
   /* ============================================================
-     ============================================================
-     游戏 3：三张扑克 Three Card Poker
-     ============================================================
-     ============================================================ */
+     游戏 3：三张扑克
+  ============================================================ */
   (function ThreeCard() {
     const MIN_ANTE = 200;
 
@@ -1907,7 +1996,7 @@
     let playerHand = [];
     let dealerHand = [];
     let ante = 0;
-    let state = 'bet';   // bet | decide | over
+    let state = 'bet';
     let busy = false;
 
     const dealerCardsEl = $('tcpDealerCards');
@@ -1960,7 +2049,6 @@
         if (vals[2] - vals[0] === 2) {
           isStraight = true; straightHigh = vals[2];
         } else if (vals[0] === 2 && vals[1] === 3 && vals[2] === 14) {
-          // A-2-3
           isStraight = true; straightHigh = 3;
         }
       }
@@ -1999,25 +2087,6 @@
       foldBtn.disabled = !(state === 'decide' && !busy);
       playBtn.disabled = !(state === 'decide' && !busy && balance >= ante);
       restartPanel.hidden = (balance >= MIN_ANTE);
-    }
-
-    function renderHand(container, hand, hidden) {
-      container.innerHTML = '';
-      for (const c of hand) {
-        const card = hidden ? { hidden: true } : c;
-        container.appendChild(makeCardEl(card, true));
-      }
-    }
-
-    function renderCards(animate) {
-      playerCardsEl.innerHTML = '';
-      dealerCardsEl.innerHTML = '';
-      for (const c of playerHand) {
-        playerCardsEl.appendChild(makeCardEl(c, animate));
-      }
-      for (const c of dealerHand) {
-        dealerCardsEl.appendChild(makeCardEl(c, animate));
-      }
     }
 
     function updateStats() {
@@ -2099,19 +2168,17 @@
       playerSeat.classList.remove('winning', 'losing');
       setMsg('发牌中…');
 
-      // 发 3 张给玩家
       for (let i = 0; i < 3; i++) {
         playerHand.push(drawCard());
         playerCardsEl.appendChild(makeCardEl(playerHand[i], true));
         Sound.deal();
-        await sleep(160);
+        await sleep(150);
       }
-      // 发 3 张给庄家（背面）
       for (let i = 0; i < 3; i++) {
         dealerHand.push(drawCard());
         dealerCardsEl.appendChild(makeCardEl({ hidden: true }, true));
         Sound.deal();
-        await sleep(160);
+        await sleep(150);
       }
 
       const pEval = evalThree(playerHand);
@@ -2132,7 +2199,7 @@
       refreshButtons();
       Sound.click();
       setMsg('你弃牌了，损失底注 ' + fmt(ante), 'lose');
-      await sleep(1600);
+      await sleep(1500);
       resetForNewRound();
     }
 
@@ -2147,15 +2214,14 @@
       Sound.unlock();
       refreshButtons();
       setMsg('加注 ' + fmt(ante) + '，翻开庄家牌…');
-      await sleep(500);
+      await sleep(480);
 
-      // 翻庄家牌
       dealerCardsEl.innerHTML = '';
       for (const c of dealerHand) {
         dealerCardsEl.appendChild(makeCardEl(c, true));
       }
       Sound.flip();
-      await sleep(450);
+      await sleep(420);
 
       const pEval = evalThree(playerHand);
       const dEval = evalThree(dealerHand);
@@ -2163,16 +2229,15 @@
       dealerHandEl.textContent = dEval.name;
       dealerHandEl.classList.add('highlight');
 
-      await sleep(600);
+      await sleep(560);
 
-      const dealerQualifies = dEval.rank >= 1 || dEval.high >= 12;   // 至少 Q 高
+      const dealerQualifies = dEval.rank >= 1 || dEval.high >= 12;
 
       let winAmount = 0;
       let msg = '', cls = '';
 
       if (!dealerQualifies) {
-        // 庄家不继续：底注赢 1:1，加注退回
-        winAmount = ante * 2 + ante;   // 底注赔 1:1 + 底注本金 + 加注退还
+        winAmount = ante * 2 + ante;
         msg = '庄家未达 Q 高 · 底注赢 ' + fmt(ante) + '，加注退回';
         cls = 'win';
         Sound.winMedium();
@@ -2181,10 +2246,9 @@
       } else {
         const cmp = compareHands(pEval, dEval);
         if (cmp > 0) {
-          // 玩家赢
           const antePay = PAYOUT[pEval.type] || 0;
-          const anteWin = ante * (antePay + 1);       // 底注按赔付表 + 本金
-          const playWin = ante * 2;                    // 加注 1:1 + 本金
+          const anteWin = ante * (antePay + 1);
+          const playWin = ante * 2;
           winAmount = anteWin + playWin;
           msg = '你赢了！' + pEval.name + ' 击败 ' + dEval.name;
           if (antePay >= 4) { Sound.winBig(); }
@@ -2201,7 +2265,6 @@
           dealerSeat.classList.add('winning');
           playerSeat.classList.add('losing');
         } else {
-          // 平局：底注、加注都退回
           winAmount = ante * 2;
           msg = '平局 · 退回底注与加注';
           Sound.push();
@@ -2213,11 +2276,10 @@
       setMsg(msg, cls);
 
       state = 'over';
-      await sleep(2400);
+      await sleep(2200);
       resetForNewRound();
     }
 
-    // 事件
     document.querySelectorAll('.chip[data-tcp]').forEach(btn => {
       btn.addEventListener('click', () => addAnte(Number(btn.dataset.tcp)));
     });
@@ -2232,7 +2294,6 @@
       setMsg('已重置资金，选择底注开始');
     });
 
-    // 键盘
     document.addEventListener('keydown', e => {
       if (currentGame !== 'threecard') return;
       if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -2256,17 +2317,15 @@
   })();
 
   /* ============================================================
-     ============================================================
-     游戏 4：百家乐 Baccarat
-     ============================================================
-     ============================================================ */
+     游戏 4：百家乐
+  ============================================================ */
   (function Baccarat() {
     const DECKS = 8;
 
     let deck = [];
     let playerHand = [];
     let bankerHand = [];
-    let side = null;       // 'player' | 'banker' | 'tie'
+    let side = null;
     let bet = 0;
     let state = 'bet';
     let busy = false;
@@ -2382,7 +2441,7 @@
       const el = makeCardEl(reveal ? card : { hidden: true }, true);
       containerEl.appendChild(el);
       Sound.deal();
-      await sleep(340);
+      await sleep(320);
     }
 
     async function startRound() {
@@ -2413,7 +2472,6 @@
       updateTotals();
       refreshButtons();
 
-      // 标准顺序：闲、庄、闲、庄
       await dealCardTo(playerHand, playerCardsEl, true);
       updateTotals();
       await dealCardTo(bankerHand, bankerCardsEl, true);
@@ -2423,59 +2481,54 @@
       await dealCardTo(bankerHand, bankerCardsEl, true);
       updateTotals();
 
-      await sleep(300);
+      await sleep(280);
 
       let pT = baccTotal(playerHand);
       let bT = baccTotal(bankerHand);
 
-      // 天生 8/9 → 双方都不补
       if (pT >= 8 || bT >= 8) {
         setMsg('天生 ' + (pT >= 8 ? pT : bT) + ' 点，直接结算');
-        await sleep(900);
+        await sleep(880);
         await settle();
         return;
       }
 
-      // 闲家补牌规则：0-5 补，6-7 停
       let playerThird = null;
       if (pT <= 5) {
         setMsg('闲家补牌…');
-        await sleep(400);
+        await sleep(380);
         await dealCardTo(playerHand, playerCardsEl, true);
         playerThird = cardValue(playerHand[2]);
         pT = baccTotal(playerHand);
         updateTotals();
-        await sleep(400);
+        await sleep(380);
       } else {
         setMsg('闲家停牌');
-        await sleep(500);
+        await sleep(480);
       }
 
-      // 庄家补牌规则
       let bankerDraw = false;
       if (playerThird === null) {
-        // 闲家停牌：庄家 0-5 补，6-7 停
         bankerDraw = bT <= 5;
       } else {
-        // 闲家补了第三张
         if (bT <= 2) bankerDraw = true;
         else if (bT === 3) bankerDraw = playerThird !== 8;
         else if (bT === 4) bankerDraw = playerThird >= 2 && playerThird <= 7;
         else if (bT === 5) bankerDraw = playerThird >= 4 && playerThird <= 7;
         else if (bT === 6) bankerDraw = playerThird === 6 || playerThird === 7;
-        else bankerDraw = false;   // 7 停
+        else bankerDraw = false;
       }
 
       if (bankerDraw) {
         setMsg('庄家补牌…');
-        await sleep(400);
+        await sleep(380);
         await dealCardTo(bankerHand, bankerCardsEl, true);
         bT = baccTotal(bankerHand);
         updateTotals();
-        await sleep(400);
+        await sleep(380);
       } else {
         setMsg('庄家停牌');
-        await sleep(500);
+        await sleep(480);
       }
 
       await settle();
@@ -2499,7 +2552,7 @@
           payout = bet * 2;
           msg = '闲 ' + pT + ' : ' + bT + ' · 赢得 ' + fmt(bet);
         } else if (side === 'banker') {
-          payout = bet + bet * 0.95;   // 5% 抽水
+          payout = bet + bet * 0.95;
           msg = '庄 ' + bT + ' : ' + pT + ' · 赢得 ' + fmt(bet * 0.95) + '（抽水 5%）';
         } else {
           payout = bet * 9;
@@ -2513,7 +2566,7 @@
         }
         document.querySelector('.bac-bet[data-bac="' + side + '"]').classList.add('win');
       } else if (winner === 'tie' && side !== 'tie') {
-        payout = bet;   // 退回
+        payout = bet;
         msg = '和局 ' + pT + ' : ' + bT + ' · 退回下注';
         Sound.push();
       } else {
@@ -2527,7 +2580,7 @@
       setMsg(msg, cls);
 
       state = 'over';
-      await sleep(2400);
+      await sleep(2200);
       resetForNewRound();
     }
 
@@ -2556,7 +2609,6 @@
       refreshButtons();
     }
 
-    // 事件
     document.querySelectorAll('.bac-bet').forEach(btn => {
       btn.addEventListener('click', () => selectSide(btn.dataset.bac));
     });
@@ -2573,7 +2625,6 @@
       setMsg('已重置资金，选择押注方向开始');
     });
 
-    // 键盘
     document.addEventListener('keydown', e => {
       if (currentGame !== 'baccarat') return;
       if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
