@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>常用工具类</title>
+  <meta name="description" content="常用工具集合：多语言管理、文本编辑、纸牌、俄罗斯方块、老虎机、五子棋、图片浏览、小说阅读、网速测试等">
+  <title>常用工具</title>
   <style>
     * {
       margin: 0;
@@ -81,22 +82,14 @@
                   border-color 0.22s ease;
       opacity: 0;
       animation: rise 0.45s cubic-bezier(.2,.8,.3,1) forwards;
+      /* 由 JS 注入 --i（序号）实现错峰入场，不再硬编码 nth-child */
+      animation-delay: calc(var(--i, 0) * 40ms);
     }
 
     @keyframes rise {
       from { opacity: 0; transform: translateY(14px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-
-    /* 错峰入场 */
-    .tool-card:nth-child(1) { animation-delay: .02s; }
-    .tool-card:nth-child(2) { animation-delay: .06s; }
-    .tool-card:nth-child(3) { animation-delay: .10s; }
-    .tool-card:nth-child(4) { animation-delay: .14s; }
-    .tool-card:nth-child(5) { animation-delay: .18s; }
-    .tool-card:nth-child(6) { animation-delay: .22s; }
-    .tool-card:nth-child(7) { animation-delay: .26s; }
-    .tool-card:nth-child(8) { animation-delay: .30s; }
 
     /* 左侧色条 */
     .tool-card::before {
@@ -145,7 +138,8 @@
       transition: transform 0.25s cubic-bezier(.2,.8,.3,1);
     }
 
-    .tool-card:hover .icon {
+    .tool-card:hover .icon,
+    .tool-card:focus-visible .icon {
       transform: scale(1.08) rotate(-4deg);
     }
 
@@ -185,7 +179,8 @@
       transition: transform 0.25s ease, color 0.25s ease;
     }
 
-    .tool-card:hover .arrow {
+    .tool-card:hover .arrow,
+    .tool-card:focus-visible .arrow {
       transform: translateX(4px);
       color: var(--accent);
     }
@@ -224,84 +219,87 @@
     <p>精选实用小工具，点击卡片即可使用</p>
   </header>
 
-  <div class="tool-list">
+  <div class="tool-list" id="toolList"></div>
 
-    <a class="tool-card" href="https://songzhiyin.github.io/commonUtil/appLanguage/" style="--accent:#3b82f6">
-      <span class="icon">🌐</span>
-      <span class="info">
-        <span class="name">APP多语言管理</span>
-        <span class="desc">集中管理多语言文案</span>
-      </span>
-      <span class="arrow">›</span>
-    </a>
-
-    <a class="tool-card" href="https://songzhiyin.github.io/commonUtil/textEditor/" style="--accent:#8b5cf6">
-      <span class="icon">📝</span>
-      <span class="info">
-        <span class="name">文本编辑器</span>
-        <span class="desc">在线编辑与处理文本</span>
-      </span>
-      <span class="arrow">›</span>
-    </a>
-
-    <a class="tool-card" href="https://songzhiyin.github.io/commonUtil/gameCard/" style="--accent:#f59e0b">
-      <span class="icon">🃏</span>
-      <span class="info">
-        <span class="name">经典纸牌</span>
-        <span class="desc">经典纸牌，挑战手气</span>
-      </span>
-      <span class="arrow">›</span>
-    </a>
-
-    <a class="tool-card" href="https://songzhiyin.github.io/commonUtil/gameRussia/" style="--accent:#ef4444">
-      <span class="icon">🎮</span>
-      <span class="info">
-        <span class="name">俄罗斯方块</span>
-        <span class="desc">休闲益智小游戏</span>
-      </span>
-      <span class="arrow">›</span>
-    </a>
-
-    <a class="tool-card" href="https://songzhiyin.github.io/commonUtil/picture/" style="--accent:#06b6d4">
-      <span class="icon">🖼️</span>
-      <span class="info">
-        <span class="name">图片浏览器</span>
-        <span class="desc">快速浏览本地图片</span>
-      </span>
-      <span class="arrow">›</span>
-    </a>
-
-    <a class="tool-card" href="https://songzhiyin.github.io/commonUtil/novel/" style="--accent:#10b981">
-      <span class="icon">📖</span>
-      <span class="info">
-        <span class="name">小说阅读器</span>
-        <span class="desc">沉浸式在线阅读</span>
-      </span>
-      <span class="arrow">›</span>
-    </a>
-
-    <a class="tool-card" href="https://songzhiyin.github.io/commonUtil/speedTestUtil/" style="--accent:#6366f1">
-      <span class="icon">⚡</span>
-      <span class="info">
-        <span class="name">网速测试</span>
-        <span class="desc">测下载 / 上传 / 带宽</span>
-      </span>
-      <span class="arrow">›</span>
-    </a>
-
-    <a class="tool-card" href="https://mail.qq.com/" target="_blank" rel="noopener noreferrer" style="--accent:#ec4899">
-      <span class="icon">✉️</span>
-      <span class="info">
-        <span class="name">QQ邮箱</span>
-        <span class="desc">登录网页版邮箱</span>
-      </span>
-      <span class="arrow">›</span>
-    </a>
-
-  </div>
-
-  <footer>共 8 个工具 · 点击卡片直接打开</footer>
+  <footer id="footer"></footer>
 </div>
+
+<noscript>
+  <p style="text-align:center;color:#8b95a7;font-size:13px;">
+    当前浏览器未启用 JavaScript，工具列表无法显示。
+  </p>
+</noscript>
+
+<script>
+(function () {
+  'use strict';
+
+  // 站点根路径：本地工具只需配置 path，外部链接配置 href
+  const BASE = 'https://songzhiyin.github.io/commonUtil/';
+
+  const TOOLS = [
+    { name: 'APP多语言管理', desc: '集中管理多语言文案',   icon: '🌐', accent: '#3b82f6', path: 'appLanguage/' },
+    { name: '文本编辑器',   desc: '在线编辑与处理文本',   icon: '📝', accent: '#8b5cf6', path: 'textEditor/' },
+    { name: '经典纸牌',     desc: '经典纸牌，挑战手气',   icon: '🃏', accent: '#f59e0b', path: 'gameCard/' },
+    { name: '俄罗斯方块',   desc: '休闲益智小游戏',       icon: '🎮', accent: '#ef4444', path: 'gameRussia/' },
+    { name: '老虎机',       desc: '试试运气，转出大奖',   icon: '🎰', accent: '#d946ef', path: 'gameTiger/' },
+    { name: '五子棋',       desc: '人机 / 双人对弈',      icon: '⚫', accent: '#0ea5e9', path: 'gameGomoku/' },
+    { name: '图片浏览器',   desc: '快速浏览本地图片',     icon: '🖼️', accent: '#06b6d4', path: 'picture/' },
+    { name: '小说阅读器',   desc: '沉浸式在线阅读',       icon: '📖', accent: '#10b981', path: 'novel/' },
+    { name: '网速测试',     desc: '测下载 / 上传 / 带宽', icon: '⚡', accent: '#6366f1', path: 'speedTestUtil/' },
+    { name: 'QQ邮箱',       desc: '登录网页版邮箱',       icon: '✉️', accent: '#ec4899', href: 'https://mail.qq.com/', external: true }
+  ];
+
+  const listEl = document.getElementById('toolList');
+  const footerEl = document.getElementById('footer');
+
+  // 用 DOM API 构建，避免 innerHTML 带来的转义/注入问题
+  function createCard(tool, index) {
+    const card = document.createElement('a');
+    card.className = 'tool-card';
+    card.href = tool.href || BASE + tool.path;
+    card.style.setProperty('--accent', tool.accent);
+    card.style.setProperty('--i', index);
+
+    if (tool.external) {
+      card.target = '_blank';
+      card.rel = 'noopener noreferrer';
+    }
+
+    const icon = document.createElement('span');
+    icon.className = 'icon';
+    icon.textContent = tool.icon;
+
+    const info = document.createElement('span');
+    info.className = 'info';
+
+    const name = document.createElement('span');
+    name.className = 'name';
+    name.textContent = tool.name;
+
+    const desc = document.createElement('span');
+    desc.className = 'desc';
+    desc.textContent = tool.desc;
+
+    info.append(name, desc);
+
+    const arrow = document.createElement('span');
+    arrow.className = 'arrow';
+    arrow.textContent = '›';
+
+    card.append(icon, info, arrow);
+    return card;
+  }
+
+  // 一次性插入，减少重排
+  const fragment = document.createDocumentFragment();
+  TOOLS.forEach((tool, i) => fragment.appendChild(createCard(tool, i)));
+  listEl.appendChild(fragment);
+
+  // 页脚数量自动同步，新增工具无需手动改文案
+  footerEl.textContent = `共 ${TOOLS.length} 个工具 · 点击卡片直接打开`;
+})();
+</script>
 
 </body>
 </html>
