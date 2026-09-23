@@ -3,310 +3,298 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>🎴 发牌工具</title>
+<title>🍻 喝酒游戏工具</title>
 <style>
+  /* ... 样式部分保持不变 ... */
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
   body{
     background:#0a0616 radial-gradient(ellipse 80% 50% at 50% 0%, #2b1656 0%, #150c2b 45%, #0a0616 100%);
     background-attachment:fixed;
-    color:#fff;
-    font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
-    min-height:100vh;
-    user-select:none;-webkit-user-select:none;
-    overflow-x:hidden;
+    color:#fff;font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    min-height:100vh;user-select:none;-webkit-user-select:none;overflow-x:hidden;
   }
-  .app{max-width:480px;margin:0 auto;padding:16px 16px 40px;min-height:100vh}
+  .app{max-width:480px;margin:0 auto;padding:16px 16px 60px;min-height:100vh}
   .screen{display:none;animation:fade .22s ease}
   .screen.active{display:block}
   @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
-  /* ============ 顶栏 ============ */
-  .bar{
-    display:flex;align-items:center;justify-content:space-between;
-    margin-bottom:18px;height:42px;
-  }
-  .bar h2{
-    font-size:18px;font-weight:900;letter-spacing:3px;
+  /* 顶栏 */
+  .bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;height:42px;gap:8px}
+  .bar h2{font-size:18px;font-weight:900;letter-spacing:3px;
     background:linear-gradient(180deg,#fff7d0,#ffc21a 55%,#ff7a00);
     -webkit-background-clip:text;background-clip:text;color:transparent;
-    filter:drop-shadow(0 0 10px rgba(255,180,0,.5));
-  }
-  .icon-btn{
-    width:42px;height:42px;border-radius:13px;
-    border:1px solid rgba(255,255,255,.14);
-    background:rgba(255,255,255,.07);
-    color:#cfc3ee;font-size:20px;line-height:1;
-    display:grid;place-items:center;cursor:pointer;
-    transition:.16s;font-family:inherit;
-  }
+    filter:drop-shadow(0 0 10px rgba(255,180,0,.5));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .icon-btn{width:42px;height:42px;border-radius:13px;flex:0 0 auto;
+    border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);
+    color:#cfc3ee;font-size:20px;line-height:1;display:grid;place-items:center;cursor:pointer;
+    transition:.16s;font-family:inherit}
   .icon-btn:hover{background:rgba(255,255,255,.16);color:#fff}
   .icon-btn:active{transform:scale(.92)}
   .icon-btn.hidden{visibility:hidden}
 
-  /* ============ 通用 ============ */
-  .btn{
-    width:100%;padding:17px;border:none;border-radius:16px;
-    font-size:17px;font-weight:900;letter-spacing:5px;text-indent:5px;
-    color:#3a1d00;cursor:pointer;font-family:inherit;
+  /* 通用按钮 */
+  .btn{width:100%;padding:17px;border:none;border-radius:16px;font-size:17px;font-weight:900;
+    letter-spacing:5px;text-indent:5px;color:#3a1d00;cursor:pointer;font-family:inherit;
     background:linear-gradient(180deg,#ffef9e,#ffbe1a 50%,#ff8a00);
     box-shadow:0 5px 0 #a45c00,0 14px 26px -14px rgba(255,160,0,.9);
-    transition:transform .08s,box-shadow .08s,filter .2s;
-  }
-  .btn:active:not(:disabled){
-    transform:translateY(4px);
-    box-shadow:0 1px 0 #a45c00,0 6px 14px -12px rgba(255,160,0,.9);
-  }
+    transition:transform .08s,box-shadow .08s,filter .2s}
+  .btn:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 #a45c00,0 6px 14px -12px rgba(255,160,0,.9)}
   .btn:disabled{filter:grayscale(.85) brightness(.55);cursor:not-allowed;box-shadow:0 5px 0 #3a3120}
-  .btn.ghost{
-    background:rgba(255,255,255,.07);color:#cfc3ee;
-    border:1px solid rgba(255,255,255,.14);box-shadow:none;
-    font-size:15px;letter-spacing:3px;text-indent:3px;padding:15px;
-  }
+  .btn.ghost{background:rgba(255,255,255,.07);color:#cfc3ee;border:1px solid rgba(255,255,255,.14);
+    box-shadow:none;font-size:15px;letter-spacing:3px;text-indent:3px;padding:15px}
   .btn.ghost:active:not(:disabled){transform:scale(.97);box-shadow:none}
   .btn.green{background:linear-gradient(180deg,#9cf5b8,#33cc66 55%,#0f8a3a);color:#062b13;box-shadow:0 5px 0 #0a5a26}
   .btn.red{background:linear-gradient(180deg,#ff9c9c,#e83b3b 55%,#b81616);color:#fff;box-shadow:0 5px 0 #7a0f0f}
-
+  .btn.purple{background:linear-gradient(180deg,#c9a8ff,#7c4dff 55%,#4a1fa8);color:#fff;box-shadow:0 5px 0 #2e1166}
   .row{display:flex;gap:10px}
   .row .btn{flex:1}
 
-  /* ============ 首页 ============ */
-  .hero{text-align:center;padding:40px 0 34px}
-  .hero .logo{font-size:64px;line-height:1;margin-bottom:16px;
-    filter:drop-shadow(0 10px 22px rgba(255,170,0,.6))}
-  .hero h1{
-    font-size:26px;letter-spacing:5px;font-weight:900;
+  /* 首页 */
+  .hero{text-align:center;padding:34px 0 26px}
+  .hero .logo{font-size:60px;line-height:1;margin-bottom:14px;filter:drop-shadow(0 10px 22px rgba(255,170,0,.6))}
+  .hero h1{font-size:26px;letter-spacing:5px;font-weight:900;
     background:linear-gradient(180deg,#fff7d0,#ffc21a 55%,#ff7a00);
     -webkit-background-clip:text;background-clip:text;color:transparent;
-    filter:drop-shadow(0 0 16px rgba(255,180,0,.55));
-    margin-bottom:12px;
-  }
+    filter:drop-shadow(0 0 16px rgba(255,180,0,.55));margin-bottom:12px}
   .hero p{font-size:12px;color:#8f82b8;letter-spacing:3px;line-height:2}
 
-  .menu-item{
-    width:100%;display:flex;align-items:center;gap:16px;
-    padding:20px 18px;border-radius:20px;margin-bottom:13px;
-    border:1px solid rgba(255,255,255,.09);
-    background:linear-gradient(150deg,#2e1c5c,#1a1035);
-    color:#fff;cursor:pointer;font-family:inherit;text-align:left;
-    transition:.16s;
-  }
+  .menu-item{width:100%;display:flex;align-items:center;gap:16px;padding:19px 18px;border-radius:20px;
+    margin-bottom:13px;border:1px solid rgba(255,255,255,.09);
+    background:linear-gradient(150deg,#2e1c5c,#1a1035);color:#fff;cursor:pointer;
+    font-family:inherit;text-align:left;transition:.16s}
   .menu-item:hover{background:linear-gradient(150deg,#3a2470,#221443);transform:translateY(-1px)}
   .menu-item:active{transform:scale(.98)}
-  .menu-item .mi-ico{font-size:32px;width:46px;text-align:center;flex:0 0 auto}
-  .menu-item .mi-txt{display:flex;flex-direction:column;gap:4px}
+  .menu-item .mi-ico{font-size:30px;width:44px;text-align:center;flex:0 0 auto}
+  .menu-item .mi-txt{display:flex;flex-direction:column;gap:4px;min-width:0}
   .menu-item .mi-txt b{font-size:16px;letter-spacing:1.5px}
-  .menu-item .mi-txt em{font-style:normal;font-size:11px;color:#8f82b8}
+  .menu-item .mi-txt em{font-style:normal;font-size:11px;color:#8f82b8;line-height:1.5}
+  .menu-item.big{padding:24px 20px}
+  .menu-item.big .mi-ico{font-size:38px;width:54px}
+  .menu-item.big .mi-txt b{font-size:18px;letter-spacing:2px}
 
-  /* ============ 牌桌 ============ */
-  .table{
-    border-radius:22px;padding:20px 14px;
+  /* 牌桌 */
+  .table{border-radius:22px;padding:20px 14px;
     background:linear-gradient(170deg,#1e7a4a,#0d4529);
     border:1px solid rgba(255,255,255,.08);
-    box-shadow:inset 0 2px 0 rgba(255,255,255,.10),
-      inset 0 -18px 40px rgba(0,0,0,.35),
-      0 14px 34px -18px #000;
-    margin-bottom:16px;
-    min-height:230px;
-    display:flex;flex-direction:column;
-    justify-content:center;align-items:center;
-  }
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.10),inset 0 -18px 40px rgba(0,0,0,.35),0 14px 34px -18px #000;
+    margin-bottom:16px;min-height:230px;display:flex;flex-direction:column;justify-content:center;align-items:center}
+  .table.dark{background:linear-gradient(170deg,#2a1a52,#150c2b);min-height:auto}
 
-  /* ============ 扑克牌 ============ */
-  .hand{
-    display:flex;gap:11px;justify-content:center;flex-wrap:wrap;
-    padding:8px 0;
-  }
-  .pcard{
-    width:84px;height:120px;border-radius:12px;
-    background:linear-gradient(150deg,#fdfbff,#e8e2f8);
-    color:#1a1030;position:relative;
-    display:flex;flex-direction:column;justify-content:space-between;
-    padding:8px 9px;
-    box-shadow:0 5px 0 #8d85b0,0 12px 24px -8px rgba(0,0,0,.85),
-      inset 0 0 0 1px rgba(255,255,255,.6);
-    animation:dealCard .32s cubic-bezier(.2,1.4,.4,1) backwards;
-    flex:0 0 auto;
-  }
-  @keyframes dealCard{
-    from{opacity:0;transform:translateY(-30px) rotate(-8deg) scale(.7)}
-    to{opacity:1;transform:none}
-  }
-  @keyframes flipIn{
-    0%{transform:rotateY(-180deg) scale(.85);opacity:.4}
-    60%{transform:rotateY(20deg) scale(1.04)}
-    100%{transform:rotateY(0) scale(1);opacity:1}
-  }
+  /* 扑克牌 */
+  .hand{display:flex;gap:11px;justify-content:center;flex-wrap:wrap;padding:8px 0}
+  .pcard{width:84px;height:120px;border-radius:12px;
+    background:linear-gradient(150deg,#fdfbff,#e8e2f8);color:#1a1030;position:relative;
+    display:flex;flex-direction:column;justify-content:space-between;padding:8px 9px;
+    box-shadow:0 5px 0 #8d85b0,0 12px 24px -8px rgba(0,0,0,.85),inset 0 0 0 1px rgba(255,255,255,.6);
+    animation:dealCard .32s cubic-bezier(.2,1.4,.4,1) backwards;flex:0 0 auto}
+  @keyframes dealCard{from{opacity:0;transform:translateY(-30px) rotate(-8deg) scale(.7)}to{opacity:1;transform:none}}
+  @keyframes flipIn{0%{transform:rotateY(-180deg) scale(.85);opacity:.4}60%{transform:rotateY(20deg) scale(1.04)}100%{transform:rotateY(0) scale(1);opacity:1}}
   .pcard.flip-in{animation:flipIn .45s cubic-bezier(.2,1,.3,1) both}
   .pcard.red{color:#d21f3c}
   .pcard .pc-top{font-size:17px;font-weight:900;line-height:1}
   .pcard .pc-mid{font-size:38px;text-align:center;line-height:1}
   .pcard .pc-bot{font-size:17px;font-weight:900;line-height:1;text-align:right;transform:rotate(180deg)}
+  .pcard.back{background:repeating-linear-gradient(45deg,rgba(255,255,255,.09) 0 7px,transparent 7px 14px),linear-gradient(145deg,#4a3280,#2a1a52);
+    box-shadow:0 5px 0 #1a1035,0 12px 24px -8px rgba(0,0,0,.85)}
+  .pcard.back::after{content:'🎴';position:absolute;inset:0;display:grid;place-items:center;font-size:36px;opacity:.6}
+  .pcard.back.hidden-state{animation:hiddenPulse 2.4s ease-in-out infinite}
+  @keyframes hiddenPulse{0%,100%{box-shadow:0 5px 0 #1a1035,0 12px 24px -8px rgba(0,0,0,.85),0 0 0 0 rgba(255,210,74,.4)}
+    50%{box-shadow:0 5px 0 #1a1035,0 12px 24px -8px rgba(0,0,0,.85),0 0 0 6px rgba(255,210,74,.12)}}
+  .card-slot{width:84px;height:120px;border-radius:12px;border:2px dashed rgba(255,255,255,.16);
+    display:grid;place-items:center;font-size:32px;color:rgba(255,255,255,.16)}
 
-  .pcard.back{
-    background:
-      repeating-linear-gradient(45deg,rgba(255,255,255,.09) 0 7px,transparent 7px 14px),
-      linear-gradient(145deg,#4a3280,#2a1a52);
-    box-shadow:0 5px 0 #1a1035,0 12px 24px -8px rgba(0,0,0,.85);
-  }
-  .pcard.back::after{
-    content:'🎴';position:absolute;inset:0;
-    display:grid;place-items:center;font-size:36px;opacity:.6;
-  }
-  /* 闷牌状态：轻微呼吸动画 */
-  .pcard.back.hidden-state{
-    animation:hiddenPulse 2.4s ease-in-out infinite;
-  }
-  @keyframes hiddenPulse{
-    0%,100%{box-shadow:0 5px 0 #1a1035,0 12px 24px -8px rgba(0,0,0,.85),0 0 0 0 rgba(255,210,74,.4)}
-    50%{box-shadow:0 5px 0 #1a1035,0 12px 24px -8px rgba(0,0,0,.85),0 0 0 6px rgba(255,210,74,.12)}
-  }
-
-  .card-slot{
-    width:84px;height:120px;border-radius:12px;
-    border:2px dashed rgba(255,255,255,.16);
-    display:grid;place-items:center;
-    font-size:32px;color:rgba(255,255,255,.16);
-  }
-
-  /* ============ 点数/牌型展示 ============ */
-  .score-display{
-    text-align:center;margin-top:16px;padding:0 10px;
-  }
-  .score-display .lbl{
-    font-size:11px;color:rgba(255,255,255,.6);
-    letter-spacing:3px;margin-bottom:6px;
-  }
-  .score-display .val{
-    font-size:46px;font-weight:900;
-    font-variant-numeric:tabular-nums;letter-spacing:1px;
-    color:#ffd24a;
-    text-shadow:0 0 26px rgba(255,200,0,.85),0 3px 8px rgba(0,0,0,.6);
-    line-height:1.05;
-  }
+  /* 分数展示 */
+  .score-display{text-align:center;margin-top:16px;padding:0 10px}
+  .score-display .lbl{font-size:11px;color:rgba(255,255,255,.6);letter-spacing:3px;margin-bottom:6px}
+  .score-display .val{font-size:46px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:1px;
+    color:#ffd24a;text-shadow:0 0 26px rgba(255,200,0,.85),0 3px 8px rgba(0,0,0,.6);line-height:1.05}
   .score-display .val.bust{color:#ff6b6b;text-shadow:0 0 26px rgba(255,60,60,.85)}
   .score-display .val.bj{color:#6ee7a8;text-shadow:0 0 26px rgba(60,255,120,.85)}
   .score-display .val.hand-name{font-size:32px;letter-spacing:3px}
-  .score-display .note{
-    font-size:12px;color:rgba(255,255,255,.55);
-    margin-top:8px;letter-spacing:1px;
-  }
+  .score-display .note{font-size:12px;color:rgba(255,255,255,.55);margin-top:8px;letter-spacing:1px}
 
-  /* ============ 结果条 ============ */
-  .msg{
-    text-align:center;font-size:14px;font-weight:800;
-    letter-spacing:.5px;min-height:22px;line-height:1.7;
-    padding:4px 10px;color:#9d8fc4;margin-bottom:14px;
-  }
+  /* 消息条 */
+  .msg{text-align:center;font-size:14px;font-weight:800;letter-spacing:.5px;min-height:22px;
+    line-height:1.7;padding:4px 10px;color:#9d8fc4;margin-bottom:14px}
   .msg.big{color:#ffd24a;font-size:15px;text-shadow:0 0 18px rgba(255,200,0,.8)}
   .msg.good{color:#6ee7a8}
   .msg.bad{color:#ff8b9c}
   .msg.hidden-tip{color:#ffd24a;text-shadow:0 0 18px rgba(255,200,0,.8)}
 
-  /* ============ 操作区 ============ */
   .action-stack{display:flex;flex-direction:column;gap:10px}
 
-  /* ============ 骰子 ============ */
-  .count-picker{
-    display:grid;grid-template-columns:repeat(6,1fr);gap:8px;
-    margin-bottom:16px;
-  }
-  .count-btn{
-    padding:14px 0;border-radius:13px;cursor:pointer;font-family:inherit;
-    border:1px solid rgba(255,255,255,.14);
-    background:rgba(255,255,255,.06);color:#cfc3ee;
-    font-size:17px;font-weight:900;transition:.16s;
-  }
+  /* 骰子 */
+  .count-picker{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
+  .count-btn{padding:14px 0;border-radius:13px;cursor:pointer;font-family:inherit;
+    border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#cfc3ee;
+    font-size:17px;font-weight:900;transition:.16s}
   .count-btn:hover{background:rgba(255,255,255,.16)}
-  .count-btn.active{
-    background:linear-gradient(180deg,#ffe98a,#ffb300);
-    color:#3a1d00;border-color:transparent;
-    box-shadow:0 0 20px rgba(255,180,0,.7);
-  }
-
-  .dice-area{
-    display:flex;gap:14px;justify-content:center;flex-wrap:wrap;
-    padding:10px 0;min-height:130px;align-items:center;
-  }
-  .die{
-    width:72px;height:72px;border-radius:16px;
-    padding:9px;
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    grid-template-rows:repeat(3,1fr);
-    gap:3px;
+  .count-btn.active{background:linear-gradient(180deg,#ffe98a,#ffb300);color:#3a1d00;border-color:transparent;box-shadow:0 0 20px rgba(255,180,0,.7)}
+  .dice-area{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;padding:10px 0;min-height:130px;align-items:center}
+  .die{width:72px;height:72px;border-radius:16px;padding:9px;display:grid;
+    grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:3px;
     background:linear-gradient(145deg,#fff,#ddd4ef);
-    box-shadow:0 5px 0 #a098c0,0 10px 20px -6px rgba(0,0,0,.7),
-      inset 0 -3px 8px rgba(0,0,0,.08);
-    flex:0 0 auto;
-  }
+    box-shadow:0 5px 0 #a098c0,0 10px 20px -6px rgba(0,0,0,.7),inset 0 -3px 8px rgba(0,0,0,.08);flex:0 0 auto}
   .die-cell{display:grid;place-items:center}
-  .die-pip{
-    width:100%;height:100%;border-radius:50%;
-    background:#1a1030;opacity:0;transition:opacity .1s;
-  }
+  .die-pip{width:100%;height:100%;border-radius:50%;background:#1a1030;opacity:0;transition:opacity .1s}
   .die-cell.on .die-pip{opacity:1}
   .die.rolling{animation:diceShake .14s infinite}
-  @keyframes diceShake{
-    0%{transform:translate(0,0) rotate(0)}
-    25%{transform:translate(-2px,-4px) rotate(-9deg)}
-    50%{transform:translate(3px,2px) rotate(7deg)}
-    75%{transform:translate(-1px,2px) rotate(-5deg)}
-    100%{transform:translate(0,0) rotate(0)}
-  }
+  @keyframes diceShake{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(-2px,-4px) rotate(-9deg)}
+    50%{transform:translate(3px,2px) rotate(7deg)}75%{transform:translate(-1px,2px) rotate(-5deg)}100%{transform:translate(0,0) rotate(0)}}
+  .total-display{text-align:center;padding:12px 0 4px}
+  .total-display .lbl{font-size:11px;color:rgba(255,255,255,.55);letter-spacing:3px;margin-bottom:4px}
+  .total-display .val{font-size:52px;font-weight:900;color:#ffd24a;font-variant-numeric:tabular-nums;letter-spacing:2px;
+    text-shadow:0 0 26px rgba(255,200,0,.85),0 3px 8px rgba(0,0,0,.6);line-height:1.05}
 
-  .total-display{
-    text-align:center;padding:12px 0 4px;
-  }
-  .total-display .lbl{
-    font-size:11px;color:rgba(255,255,255,.55);
-    letter-spacing:3px;margin-bottom:4px;
-  }
-  .total-display .val{
-    font-size:52px;font-weight:900;color:#ffd24a;
-    font-variant-numeric:tabular-nums;letter-spacing:2px;
-    text-shadow:0 0 26px rgba(255,200,0,.85),0 3px 8px rgba(0,0,0,.6);
-    line-height:1.05;
-  }
-
-  /* ============ 提示 ============ */
-  .tip{
-    font-size:11px;color:#6b5f92;text-align:center;
-    line-height:1.9;margin-top:16px;padding:0 6px;
-  }
+  .tip{font-size:11px;color:#6b5f92;text-align:center;line-height:1.9;margin-top:16px;padding:0 6px}
   .tip b{color:#8f82b8}
 
-  /* ============ 音量按钮 ============ */
-  .vol-btn{
-    position:fixed;right:14px;bottom:14px;z-index:50;
-    width:48px;height:48px;border-radius:50%;
-    border:1px solid rgba(255,255,255,.18);
-    background:rgba(26,16,53,.92);
-    backdrop-filter:blur(8px);
-    color:#ffd24a;font-size:22px;line-height:1;
+  /* 房间 */
+  .room-code{text-align:center;margin-bottom:14px}
+  .room-code .lbl{font-size:11px;color:#8f82b8;letter-spacing:4px;margin-bottom:6px}
+  .room-code .code{font-size:40px;font-weight:900;letter-spacing:10px;text-indent:10px;color:#ffd24a;
+    font-variant-numeric:tabular-nums;text-shadow:0 0 26px rgba(255,200,0,.7)}
+  .qr-box{display:flex;justify-content:center;padding:14px;background:#fff;border-radius:16px;
+    width:fit-content;margin:0 auto 16px;box-shadow:0 10px 30px -10px rgba(0,0,0,.8)}
+  .qr-box img{display:block;width:180px;height:180px;image-rendering:pixelated}
+  .players{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;justify-content:center}
+  .player-chip{padding:8px 14px;border-radius:20px;font-size:13px;font-weight:700;
+    background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#cfc3ee;display:flex;align-items:center;gap:6px}
+  .player-chip.me{background:linear-gradient(135deg,#ffd24a,#ff8a00);color:#3a1d00;border-color:transparent}
+  .player-chip .dot{width:7px;height:7px;border-radius:50%;background:#6ee7a8;box-shadow:0 0 8px #6ee7a8}
+  .player-chip.me .dot{background:#0f8a3a;box-shadow:none}
+
+  /* 房间内玩家状态面板 */
+  .peers-panel{margin-bottom:14px;display:flex;flex-direction:column;gap:7px}
+  .peer-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:10px 14px;border-radius:13px;background:rgba(255,255,255,.055);
+    border:1px solid rgba(255,255,255,.09);font-size:13px}
+  .peer-row .pname{font-weight:800;color:#cfc3ee;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .peer-row .pval{font-weight:900;color:#ffd24a;font-variant-numeric:tabular-nums;flex:0 0 auto}
+  .peer-row.stand .pval{color:#6ee7a8}
+  .peer-row.bust .pval{color:#ff6b6b}
+  .peer-row.me{border-color:rgba(255,210,74,.5);background:rgba(255,210,74,.08)}
+
+  /* 输入框 */
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:11px;color:#8f82b8;letter-spacing:3px;margin-bottom:8px}
+  .input{width:100%;padding:16px;border-radius:14px;font-family:inherit;font-size:16px;font-weight:700;
+    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#fff;outline:none;transition:.16s}
+  .input:focus{border-color:rgba(255,210,74,.6);background:rgba(255,255,255,.1)}
+  .input::placeholder{color:#5f5486}
+  .input.code{text-align:center;letter-spacing:8px;text-indent:8px;font-size:22px;text-transform:uppercase}
+
+  /* 音量面板 */
+  .vol-widget{position:fixed;right:14px;bottom:14px;z-index:60;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+  .vol-btn{width:48px;height:48px;border-radius:50%;border:1px solid rgba(255,255,255,.18);
+    background:rgba(26,16,53,.92);backdrop-filter:blur(8px);color:#ffd24a;font-size:22px;line-height:1;
     display:grid;place-items:center;cursor:pointer;
-    box-shadow:0 8px 22px -8px rgba(0,0,0,.9),0 0 18px -4px rgba(255,180,0,.5);
-    transition:.16s;font-family:inherit;
-  }
+    box-shadow:0 8px 22px -8px rgba(0,0,0,.9),0 0 18px -4px rgba(255,180,0,.5);transition:.16s;font-family:inherit}
   .vol-btn:hover{background:rgba(58,36,112,.95);transform:scale(1.06)}
   .vol-btn:active{transform:scale(.92)}
   .vol-btn.muted{color:#8f82b8;box-shadow:0 8px 22px -8px rgba(0,0,0,.9)}
+  .vol-panel{display:none;background:rgba(26,16,53,.97);backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:14px 16px;
+    box-shadow:0 12px 34px -12px rgba(0,0,0,.95);width:200px}
+  .vol-panel.show{display:block;animation:fade .18s ease}
+  .vol-panel .vrow{display:flex;align-items:center;gap:10px}
+  .vol-panel .vrow span{font-size:16px;color:#cfc3ee}
+  .vol-panel input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:5px;border-radius:3px;
+    background:linear-gradient(90deg,#ffd24a,#ff8a00);outline:none}
+  .vol-panel input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+    background:#fff;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+  .vol-panel input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:none;cursor:pointer}
+  .vol-panel .vnum{text-align:center;font-size:11px;color:#8f82b8;margin-top:8px;letter-spacing:1px}
 
-  /* ============ 滚动条 ============ */
+  /* 斗地主 */
+  .ddz-hand{display:flex;gap:0;justify-content:center;padding:10px 4px;overflow-x:auto;
+    overflow-y:visible;-webkit-overflow-scrolling:touch;min-height:96px;align-items:flex-end}
+  .dcard{width:46px;height:66px;flex:0 0 auto;margin-left:-14px;border-radius:7px;
+    background:linear-gradient(150deg,#fdfbff,#e8e2f8);color:#1a1030;
+    display:flex;flex-direction:column;justify-content:space-between;padding:4px 5px;
+    font-size:13px;font-weight:900;line-height:1;cursor:pointer;
+    box-shadow:0 3px 0 #8d85b0,0 6px 12px -4px rgba(0,0,0,.7);transition:transform .12s,box-shadow .12s;
+    position:relative}
+  .dcard:first-child{margin-left:0}
+  .dcard.red{color:#d21f3c}
+  .dcard.sel{transform:translateY(-16px);box-shadow:0 3px 0 #c98f00,0 10px 18px -6px rgba(255,180,0,.7);outline:2px solid #ffd24a}
+  .dcard .s2{text-align:right;transform:rotate(180deg)}
+  .ddz-table{min-height:110px;border-radius:18px;padding:14px 10px;
+    background:linear-gradient(170deg,#1e7a4a,#0d4529);
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.10),inset 0 -14px 30px rgba(0,0,0,.35);
+    display:flex;align-items:center;justify-content:center;gap:2px;flex-wrap:wrap;margin-bottom:12px}
+  .ddz-table .dcard{width:38px;height:54px;font-size:11px;margin-left:-10px;cursor:default}
+  .ddz-table .dcard:first-child{margin-left:0}
+  .ddz-info{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#8f82b8;
+    padding:0 6px 10px;letter-spacing:1px}
+  .ddz-info b{color:#ffd24a}
+
+  /* 数字炸弹 */
+  .bomb-range{text-align:center;font-size:34px;font-weight:900;color:#ffd24a;letter-spacing:3px;
+    text-shadow:0 0 26px rgba(255,200,0,.7);margin:8px 0}
+  .bomb-num{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:14px}
+  .bomb-num button{width:calc(25% - 6px);padding:14px 0;border-radius:12px;font-family:inherit;font-size:17px;
+    font-weight:900;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#cfc3ee;cursor:pointer;transition:.14s}
+  .bomb-num button:active{transform:scale(.93);background:rgba(255,255,255,.16)}
+  .bomb-num button.wide{width:calc(50% - 4px)}
+  .boom{text-align:center;font-size:60px;animation:boomA .5s ease}
+  @keyframes boomA{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.25)}100%{transform:scale(1);opacity:1}}
+
+  /* 大冒险转盘 */
+  .dare-box{border-radius:20px;padding:34px 20px;text-align:center;min-height:200px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    background:linear-gradient(150deg,#2e1c5c,#1a1035);border:1px solid rgba(255,255,255,.09);
+    box-shadow:0 14px 34px -18px #000;margin-bottom:16px}
+  .dare-box .dtype{font-size:12px;letter-spacing:5px;color:#8f82b8}
+  .dare-box .dtext{font-size:22px;font-weight:900;line-height:1.6;color:#ffd24a;
+    text-shadow:0 0 22px rgba(255,200,0,.5)}
+  .dare-box .dtext.truth{color:#6ee7a8;text-shadow:0 0 22px rgba(60,255,120,.5)}
+  .dare-box .dspinner{font-size:64px;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
   ::-webkit-scrollbar{width:6px;height:6px}
   ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:3px}
+
+  .loading{text-align:center;padding:40px 0;color:#8f82b8;font-size:13px;letter-spacing:2px}
+  .spinner{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.12);
+    border-top-color:#ffd24a;margin:0 auto 16px;animation:spin .8s linear infinite}
 </style>
 </head>
 <body>
 
 <div class="app">
 
-  <!-- ========== 首页 ========== -->
+  <!-- ================= 首页 ================= -->
   <section id="screen-home" class="screen active">
     <div class="hero">
-      <div class="logo">🎴</div>
-      <h1>发 牌 工 具</h1>
-      <p>每 人 一 台 手 机<br>各 自 发 牌 · 互 相 比 大 小</p>
+      <div class="logo">🍻</div>
+      <h1>喝 酒 游 戏</h1>
+      <p>聚 会 必 备 · 自 带 音 效<br>单 机 玩 或 扫 码 组 队</p>
+    </div>
+
+    <button class="menu-item big" data-go="local">
+      <span class="mi-ico">📱</span>
+      <span class="mi-txt"><b>本 地 模 式</b><em>不用房间 · 每人自己操作 · 面对面比较</em></span>
+    </button>
+
+    <button class="menu-item big" data-go="join">
+      <span class="mi-ico">🔗</span>
+      <span class="mi-txt"><b>创 建 / 加 入 房 间</b><em>扫码组队 · 一起玩斗地主等游戏</em></span>
+    </button>
+
+    <p class="tip">
+      <b>本地模式</b>：每人在自己手机上打开本页面，各自发牌/摇骰子，然后亮出手机比较<br>
+      <b>房间模式</b>：一人创建房间生成二维码，其他人扫码加入，实时同步
+    </p>
+  </section>
+
+  <!-- ================= 本地模式菜单 ================= -->
+  <section id="screen-local" class="screen">
+    <div class="bar">
+      <button class="icon-btn" data-go="home">‹</button>
+      <h2>本 地 模 式</h2>
+      <button class="icon-btn hidden"></button>
     </div>
 
     <button class="menu-item" data-go="bj">
@@ -315,26 +303,105 @@
     </button>
     <button class="menu-item" data-go="zjh">
       <span class="mi-ico">🔥</span>
-      <span class="mi-txt"><b>炸金花</b><em>发三张牌 · 支持闷牌，看牌自己决定</em></span>
+      <span class="mi-txt"><b>炸金花</b><em>发三张牌 · 支持闷牌</em></span>
     </button>
     <button class="menu-item" data-go="dice">
       <span class="mi-ico">🎲</span>
-      <span class="mi-txt"><b>摇骰子</b><em>自定义骰子个数，随便摇</em></span>
+      <span class="mi-txt"><b>摇骰子</b><em>自定义个数，随便摇</em></span>
+    </button>
+    <button class="menu-item" data-go="bomb">
+      <span class="mi-ico">💣</span>
+      <span class="mi-txt"><b>数字炸弹</b><em>轮流猜数字，猜中炸弹就喝</em></span>
+    </button>
+    <button class="menu-item" data-go="dare">
+      <span class="mi-ico">🎯</span>
+      <span class="mi-txt"><b>真心话大冒险</b><em>转盘抽题，躲不过就认罚</em></span>
     </button>
 
-    <p class="tip">
-      使用方式：每人各自打开本页面 → 点「发牌」→ 自己操作<br>
-      结束后把手机亮出来，<b>面对面比较</b>判定胜负
-    </p>
+    <p class="tip">每人在自己手机上打开本页面，选同一个游戏，各自操作后亮出手机比较</p>
   </section>
 
-  <!-- ========== 21点 ========== -->
-  <section id="screen-bj" class="screen">
+  <!-- ================= 创建 / 加入房间 ================= -->
+  <section id="screen-join" class="screen">
     <div class="bar">
       <button class="icon-btn" data-go="home">‹</button>
+      <h2>房 间</h2>
+      <button class="icon-btn hidden"></button>
+    </div>
+
+    <div class="field">
+      <label>你 的 昵 称</label>
+      <input class="input" id="nickInput" placeholder="输入昵称" maxlength="8" autocomplete="off">
+    </div>
+
+    <div class="action-stack">
+      <button class="btn" id="createRoomBtn">创 建 房 间</button>
+      <button class="btn ghost" id="showJoinFormBtn">加 入 已 有 房 间</button>
+    </div>
+
+    <div id="joinForm" style="display:none;margin-top:16px">
+      <div class="field">
+        <label>房 间 号</label>
+        <input class="input code" id="roomCodeInput" placeholder="ABCDE" maxlength="6" autocomplete="off">
+      </div>
+      <button class="btn green" id="joinRoomBtn">加 入 房 间</button>
+    </div>
+
+    <p class="tip">房间基于 WebRTC 点对点连接，无需自建服务器<br>扫码或输入房间号即可加入</p>
+  </section>
+
+  <!-- ================= 房间大厅 ================= -->
+  <section id="screen-lobby" class="screen">
+    <div class="bar">
+      <button class="icon-btn" id="leaveRoomBtn">‹</button>
+      <h2>房 间 大 厅</h2>
+      <button class="icon-btn" id="copyLinkBtn" title="复制链接">⧉</button>
+    </div>
+
+    <div class="room-code">
+      <div class="lbl">房 间 号</div>
+      <div class="code" id="lobbyCode">-----</div>
+    </div>
+
+    <div class="qr-box" id="qrBox"></div>
+
+    <div class="players" id="playersList"></div>
+
+    <div class="msg" id="lobbyMsg">把二维码给朋友扫，或输入房间号加入</div>
+
+    <div id="lobbyGames">
+      <button class="menu-item" data-room-game="bj">
+        <span class="mi-ico">♠️</span>
+        <span class="mi-txt"><b>21 点</b><em>各自发牌 · 实时看到别人点数</em></span>
+      </button>
+      <button class="menu-item" data-room-game="zjh">
+        <span class="mi-ico">🔥</span>
+        <span class="mi-txt"><b>炸金花</b><em>各自发牌 · 闷牌或看牌</em></span>
+      </button>
+      <button class="menu-item" data-room-game="dice">
+        <span class="mi-ico">🎲</span>
+        <span class="mi-txt"><b>摇骰子</b><em>一起摇 · 实时排名</em></span>
+      </button>
+      <button class="menu-item" data-room-game="ddz">
+        <span class="mi-ico">🃏</span>
+        <span class="mi-txt"><b>斗地主</b><em>需要 3 人 · 完整出牌对战</em></span>
+      </button>
+      <button class="menu-item" data-room-game="dare">
+        <span class="mi-ico">🎯</span>
+        <span class="mi-txt"><b>真心话大冒险</b><em>转盘抽题，一起起哄</em></span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ================= 21 点 ================= -->
+  <section id="screen-bj" class="screen">
+    <div class="bar">
+      <button class="icon-btn" data-back>‹</button>
       <h2>21 点</h2>
       <button class="icon-btn hidden"></button>
     </div>
+
+    <div class="peers-panel" id="bjPeers" style="display:none"></div>
 
     <div class="table" id="bjTable">
       <div class="hand" id="bjHand"></div>
@@ -347,7 +414,7 @@
 
     <div class="msg" id="bjMsg">点「开始发牌」拿两张牌</div>
 
-    <div class="action-stack" id="bjActions">
+    <div class="action-stack">
       <button class="btn" id="bjStartBtn">开 始 发 牌</button>
       <div class="row" id="bjPlayRow" style="display:none">
         <button class="btn green" id="bjHitBtn">要 牌</button>
@@ -362,13 +429,15 @@
     </p>
   </section>
 
-  <!-- ========== 炸金花 ========== -->
+  <!-- ================= 炸金花 ================= -->
   <section id="screen-zjh" class="screen">
     <div class="bar">
-      <button class="icon-btn" data-go="home">‹</button>
+      <button class="icon-btn" data-back>‹</button>
       <h2>炸金花</h2>
       <button class="icon-btn hidden"></button>
     </div>
+
+    <div class="peers-panel" id="zjhPeers" style="display:none"></div>
 
     <div class="table">
       <div class="hand" id="zjhHand"></div>
@@ -388,20 +457,21 @@
 
     <p class="tip">
       发牌后默认<b>闷牌</b>（不翻开），点「看牌」才亮出牌面<br>
-      牌型大小：<b>豹子 ＞ 顺金 ＞ 金花 ＞ 顺子 ＞ 对子 ＞ 单张</b><br>
-      同牌型再比点数，A 最大，2 最小
+      牌型大小：<b>豹子 ＞ 顺金 ＞ 金花 ＞ 顺子 ＞ 对子 ＞ 单张</b>
     </p>
   </section>
 
-  <!-- ========== 摇骰子 ========== -->
+  <!-- ================= 摇骰子 ================= -->
   <section id="screen-dice" class="screen">
     <div class="bar">
-      <button class="icon-btn" data-go="home">‹</button>
+      <button class="icon-btn" data-back>‹</button>
       <h2>摇 骰 子</h2>
       <button class="icon-btn hidden"></button>
     </div>
 
-    <div class="table" style="background:linear-gradient(170deg,#2a1a52,#150c2b);min-height:auto">
+    <div class="peers-panel" id="dicePeers" style="display:none"></div>
+
+    <div class="table dark">
       <div style="width:100%">
         <div class="count-picker" id="diceCountPicker">
           <button class="count-btn" data-count="1">1</button>
@@ -425,25 +495,112 @@
       <button class="btn" id="diceRollBtn">摇 骰 子</button>
     </div>
 
-    <p class="tip">
-      摇完后把手机亮出来，点数大的赢<br>
-      或者大家约好其他规则都行
-    </p>
+    <p class="tip">摇完后把手机亮出来，点数大的赢</p>
+  </section>
+
+  <!-- ================= 斗地主 ================= -->
+  <section id="screen-ddz" class="screen">
+    <div class="bar">
+      <button class="icon-btn" data-back>‹</button>
+      <h2>斗 地 主</h2>
+      <button class="icon-btn hidden"></button>
+    </div>
+
+    <div class="ddz-info">
+      <span>地主：<b id="ddzLandlord">—</b></span>
+      <span>轮到：<b id="ddzTurn">—</b></span>
+    </div>
+
+    <div class="ddz-table" id="ddzTable"></div>
+
+    <div class="msg" id="ddzMsg">点「开始游戏」发牌</div>
+
+    <div class="ddz-hand" id="ddzHand"></div>
+
+    <div class="action-stack">
+      <button class="btn" id="ddzStartBtn">开 始 游 戏</button>
+      <div class="row" id="ddzPlayRow" style="display:none">
+        <button class="btn green" id="ddzPlayBtn">出 牌</button>
+        <button class="btn ghost" id="ddzPassBtn">不 要</button>
+      </div>
+      <button class="btn ghost" id="ddzResetBtn" style="display:none">重 新 开 始</button>
+    </div>
+
+    <p class="tip">房间模式下需要 3 位玩家 · 支持单张/对子/三带/顺子/连对/炸弹/王炸</p>
+  </section>
+
+  <!-- ================= 数字炸弹 ================= -->
+  <section id="screen-bomb" class="screen">
+    <div class="bar">
+      <button class="icon-btn" data-back>‹</button>
+      <h2>数 字 炸 弹</h2>
+      <button class="icon-btn hidden"></button>
+    </div>
+
+    <div class="table dark">
+      <div style="width:100%">
+        <div class="score-display" style="margin-top:0">
+          <div class="lbl">当 前 范 围</div>
+          <div class="bomb-range" id="bombRange">1 — 100</div>
+        </div>
+        <div class="msg" id="bombMsg" style="margin-bottom:0">输入一个数字，别踩到炸弹</div>
+      </div>
+    </div>
+
+    <div class="bomb-num" id="bombPad"></div>
+
+    <div class="action-stack">
+      <button class="btn ghost" id="bombResetBtn">重 新 开 始</button>
+    </div>
+
+    <p class="tip">手机轮流传递 · 猜中炸弹数字的人喝酒 🍺</p>
+  </section>
+
+  <!-- ================= 真心话大冒险 ================= -->
+  <section id="screen-dare" class="screen">
+    <div class="bar">
+      <button class="icon-btn" data-back>‹</button>
+      <h2>真心话大冒险</h2>
+      <button class="icon-btn hidden"></button>
+    </div>
+
+    <div class="dare-box" id="dareBox">
+      <div class="dspinner" id="dareSpinner">🎯</div>
+      <div class="dtype" id="dareType">准 备 好 了 吗</div>
+      <div class="dtext" id="dareText">点击下方按钮开始转盘</div>
+    </div>
+
+    <div class="action-stack">
+      <button class="btn" id="dareBtn">开 始 转 盘</button>
+    </div>
+
+    <p class="tip">转到什么就做什么 · 做不到就自罚一杯 🍺</p>
   </section>
 
 </div>
 
-<!-- 音量开关 -->
-<button class="vol-btn" id="volBtn" title="音效开关">🔊</button>
+<!-- 音量控件 -->
+<div class="vol-widget">
+  <div class="vol-panel" id="volPanel">
+    <div class="vrow">
+      <span>🔈</span>
+      <input type="range" id="volSlider" min="0" max="100" value="70">
+      <span>🔊</span>
+    </div>
+    <div class="vnum" id="volNum">音量 70%</div>
+  </div>
+  <button class="vol-btn" id="volBtn" title="音效">🔊</button>
+</div>
 
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 /* =====================================================================
-   音效引擎
+   音效引擎（支持静音 + 音量调节）
    ===================================================================== */
 const Sound = (() => {
   let ac = null, master = null;
   let muted = false;
-  const VOL = 1.0;
+  let volume = 0.7;
 
   function ensure() {
     if (!ac) {
@@ -451,17 +608,13 @@ const Sound = (() => {
       if (!AC) return null;
       ac = new AC();
       master = ac.createGain();
-      master.gain.value = muted ? 0 : VOL;
+      master.gain.value = muted ? 0 : volume;
       master.connect(ac.destination);
     }
     if (ac.state === 'suspended') ac.resume();
     return ac;
   }
-
-  function setMuted(m) {
-    muted = m;
-    if (master) master.gain.value = m ? 0 : VOL;
-  }
+  function apply() { if (master) master.gain.value = muted ? 0 : volume; }
 
   function tone(freq, dur, o) {
     o = o || {};
@@ -477,10 +630,8 @@ const Sound = (() => {
     g.gain.exponentialRampToValueAtTime(peak, t0 + (o.atk || 0.008));
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     osc.connect(g); g.connect(master);
-    osc.start(t0);
-    osc.stop(t0 + dur + 0.05);
+    osc.start(t0); osc.stop(t0 + dur + 0.05);
   }
-
   function noise(dur, o) {
     o = o || {};
     if (!ac || muted) return;
@@ -488,11 +639,8 @@ const Sound = (() => {
     const len = Math.max(1, Math.floor(ac.sampleRate * dur));
     const buf = ac.createBuffer(1, len, ac.sampleRate);
     const data = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
-    }
-    const src = ac.createBufferSource();
-    src.buffer = buf;
+    for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+    const src = ac.createBufferSource(); src.buffer = buf;
     const f = ac.createBiquadFilter();
     f.type = o.filter || 'bandpass';
     f.frequency.value = o.freq || 1500;
@@ -505,215 +653,429 @@ const Sound = (() => {
   }
 
   return {
-    ensure, setMuted,
+    ensure,
+    setMuted(m) { muted = m; apply(); },
+    setVolume(v) { volume = Math.max(0, Math.min(1, v)); apply(); },
     get muted() { return muted; },
+    get volume() { return volume; },
 
-    click() {
-      tone(720, 0.06, { type: 'square', vol: 0.28 });
-      tone(1080, 0.05, { type: 'square', vol: 0.16, delay: 0.012 });
-    },
-
-    select() {
-      tone(880, 0.06, { type: 'triangle', vol: 0.30 });
-      tone(1320, 0.08, { type: 'triangle', vol: 0.20, delay: 0.03 });
-    },
-
-    deal() {
-      noise(0.11, { vol: 0.42, freq: 2400, q: 1.6 });
-      tone(520, 0.09, { type: 'triangle', vol: 0.22 });
-      tone(880, 0.07, { type: 'triangle', vol: 0.14, delay: 0.03 });
-    },
-
-    /* ★ 翻牌音效 */
-    flip() {
-      noise(0.09, { vol: 0.36, freq: 1900, q: 1.5 });
-      tone(560, 0.07, { type: 'triangle', vol: 0.24 });
-      tone(920, 0.07, { type: 'triangle', vol: 0.16, delay: 0.03 });
-    },
-
-    /* ★ 闷牌提示音（发牌完成后） */
-    hide() {
-      tone(340, 0.22, { type: 'sine', vol: 0.30, to: 260 });
-      tone(260, 0.28, { type: 'triangle', vol: 0.20, to: 200, delay: 0.04 });
-    },
-
-    hit() {
-      noise(0.10, { vol: 0.38, freq: 2800, q: 1.6 });
-      tone(680, 0.08, { type: 'triangle', vol: 0.24 });
-      tone(1020, 0.08, { type: 'triangle', vol: 0.16, delay: 0.03 });
-    },
-
-    stand() {
-      tone(560, 0.18, { type: 'triangle', vol: 0.28, to: 320 });
-      tone(360, 0.20, { type: 'sine', vol: 0.20, to: 220, delay: 0.04 });
-    },
-
+    click()   { tone(720,0.06,{type:'square',vol:0.28}); tone(1080,0.05,{type:'square',vol:0.16,delay:0.012}); },
+    select()  { tone(880,0.06,{type:'triangle',vol:0.30}); tone(1320,0.08,{type:'triangle',vol:0.20,delay:0.03}); },
+    deal()    { noise(0.11,{vol:0.42,freq:2400,q:1.6}); tone(520,0.09,{type:'triangle',vol:0.22}); tone(880,0.07,{type:'triangle',vol:0.14,delay:0.03}); },
+    flip()    { noise(0.09,{vol:0.36,freq:1900,q:1.5}); tone(560,0.07,{type:'triangle',vol:0.24}); tone(920,0.07,{type:'triangle',vol:0.16,delay:0.03}); },
+    hide()    { tone(340,0.22,{type:'sine',vol:0.30,to:260}); tone(260,0.28,{type:'triangle',vol:0.20,to:200,delay:0.04}); },
+    hit()     { noise(0.10,{vol:0.38,freq:2800,q:1.6}); tone(680,0.08,{type:'triangle',vol:0.24}); tone(1020,0.08,{type:'triangle',vol:0.16,delay:0.03}); },
+    stand()   { tone(560,0.18,{type:'triangle',vol:0.28,to:320}); tone(360,0.20,{type:'sine',vol:0.20,to:220,delay:0.04}); },
     restart() {
-      const notes = [392, 523.25, 659.25, 783.99, 1046.50];
-      notes.forEach((f, i) => {
-        tone(f, 0.16, { type: 'triangle', vol: 0.34, delay: i * 0.05 });
-        tone(f * 2, 0.10, { type: 'sine', vol: 0.14, delay: i * 0.05 });
+      [392,523.25,659.25,783.99,1046.50].forEach((f,i)=>{
+        tone(f,0.16,{type:'triangle',vol:0.34,delay:i*0.05});
+        tone(f*2,0.10,{type:'sine',vol:0.14,delay:i*0.05});
       });
-      noise(0.28, { vol: 0.30, freq: 3200, q: 0.7, delay: 0.02 });
-      tone(1567.98, 0.28, { type: 'triangle', vol: 0.32, delay: 0.28 });
-      tone(2093.00, 0.24, { type: 'sine', vol: 0.18, delay: 0.30 });
+      noise(0.28,{vol:0.30,freq:3200,q:0.7,delay:0.02});
+      tone(1567.98,0.28,{type:'triangle',vol:0.32,delay:0.28});
     },
-
     startDeal() {
-      tone(130.81, 0.22, { type: 'sawtooth', vol: 0.32, to: 65 });
-      tone(261.63, 0.20, { type: 'square', vol: 0.22 });
-      tone(280, 0.36, { type: 'sawtooth', vol: 0.20, to: 1200, delay: 0.02 });
-      noise(0.30, { vol: 0.26, freq: 3000, q: 0.7 });
+      tone(130.81,0.22,{type:'sawtooth',vol:0.32,to:65});
+      tone(261.63,0.20,{type:'square',vol:0.22});
+      tone(280,0.36,{type:'sawtooth',vol:0.20,to:1200,delay:0.02});
+      noise(0.30,{vol:0.26,freq:3000,q:0.7});
     },
-
-    roll() {
-      tone(200, 0.55, { type: 'sawtooth', vol: 0.28, to: 1100 });
-      tone(400, 0.45, { type: 'square', vol: 0.16, to: 1500, delay: 0.02 });
-      noise(0.45, { vol: 0.22, freq: 2800, q: 0.7 });
+    roll()  { tone(200,0.55,{type:'sawtooth',vol:0.28,to:1100}); tone(400,0.45,{type:'square',vol:0.16,to:1500,delay:0.02}); noise(0.45,{vol:0.22,freq:2800,q:0.7}); },
+    land()  { noise(0.18,{vol:0.42,freq:240,q:1.2}); tone(180,0.20,{type:'square',vol:0.30,to:60}); tone(880,0.12,{type:'triangle',vol:0.22,delay:0.06}); },
+    tick()  { noise(0.030,{vol:0.22,freq:2400+Math.random()*900,q:2}); tone(750+Math.random()*300,0.022,{type:'square',vol:0.12}); },
+    bust()  { tone(220,0.30,{type:'sawtooth',vol:0.34,to:110}); tone(160,0.45,{type:'square',vol:0.24,to:60,delay:0.08}); noise(0.35,{vol:0.26,freq:500,q:1.0,delay:0.04}); },
+    pop()   { tone(1400,0.05,{type:'square',vol:0.25}); tone(1900,0.04,{type:'square',vol:0.15,delay:0.02}); },
+    notify(){ tone(660,0.10,{type:'triangle',vol:0.24}); tone(990,0.12,{type:'triangle',vol:0.18,delay:0.07}); },
+    boom()  {
+      noise(0.6,{vol:0.5,freq:180,q:0.6});
+      tone(90,0.7,{type:'sawtooth',vol:0.4,to:30});
+      tone(150,0.5,{type:'square',vol:0.3,to:40,delay:0.05});
     },
-
-    land() {
-      noise(0.18, { vol: 0.42, freq: 240, q: 1.2 });
-      tone(180, 0.20, { type: 'square', vol: 0.30, to: 60 });
-      tone(880, 0.12, { type: 'triangle', vol: 0.22, delay: 0.06 });
-    },
-
-    tick() {
-      noise(0.030, { vol: 0.22, freq: 2400 + Math.random() * 900, q: 2 });
-      tone(750 + Math.random() * 300, 0.022, { type: 'square', vol: 0.12 });
-    },
-
-    bust() {
-      tone(220, 0.30, { type: 'sawtooth', vol: 0.34, to: 110 });
-      tone(160, 0.45, { type: 'square', vol: 0.24, to: 60, delay: 0.08 });
-      noise(0.35, { vol: 0.26, freq: 500, q: 1.0, delay: 0.04 });
-    },
-
     win(level) {
       const lv = level || 1;
-      const seq = {
-        1: [523.25, 659.25, 783.99],
-        2: [523.25, 659.25, 783.99, 1046.50],
-        3: [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98]
-      }[lv] || [523.25];
-
-      seq.forEach((f, i) => {
-        tone(f, 0.40, { type: 'triangle', vol: 0.32, delay: i * 0.08 });
-        tone(f * 2, 0.24, { type: 'sine', vol: 0.14, delay: i * 0.08 });
-      });
-
-      if (lv >= 2) {
-        for (let i = 0; i < 5; i++) {
-          noise(0.06, { vol: 0.16, freq: 3200 + Math.random() * 4000, delay: 0.28 + i * 0.08 });
-        }
-      }
+      const seq = {1:[523.25,659.25,783.99],2:[523.25,659.25,783.99,1046.50],3:[523.25,659.25,783.99,1046.50,1318.51,1567.98]}[lv] || [523.25];
+      seq.forEach((f,i)=>{ tone(f,0.40,{type:'triangle',vol:0.32,delay:i*0.08}); tone(f*2,0.24,{type:'sine',vol:0.14,delay:i*0.08}); });
+      if (lv>=2) for (let i=0;i<5;i++) noise(0.06,{vol:0.16,freq:3200+Math.random()*4000,delay:0.28+i*0.08});
     }
   };
 })();
-
 document.addEventListener('pointerdown', () => Sound.ensure(), { once: true });
 
 /* =====================================================================
-   基础工具
+   工具
    ===================================================================== */
 const $  = (s, r) => (r || document).querySelector(s);
 const $$ = (s, r) => [...(r || document).querySelectorAll(s)];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-function go(id) {
+/* 页面导航 */
+let navStack = ['home'];
+function go(id, push) {
+  if (push !== false) {
+    if (navStack[navStack.length-1] !== id) navStack.push(id);
+  }
   $$('.screen').forEach(s => s.classList.toggle('active', s.id === 'screen-' + id));
   window.scrollTo(0, 0);
 }
+function back() {
+  navStack.pop();
+  const prev = navStack[navStack.length - 1] || 'home';
+  go(prev, false);
+}
+$$('[data-back]').forEach(b => b.addEventListener('click', back));
 
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-go]');
   if (b) {
-    Sound.ensure();
-    Sound.click();
+    Sound.ensure(); Sound.click();
+    navStack = ['home'];
     go(b.dataset.go);
   }
 });
 
-document.addEventListener('click', e => {
-  const btn = e.target.closest('button');
-  if (!btn) return;
-  if (btn.dataset.go) return;
-  if (btn.id === 'volBtn') return;
-  if (['bjStartBtn','bjHitBtn','bjStandBtn','bjResetBtn',
-       'zjhMainBtn','zjhResetBtn','diceRollBtn'].includes(btn.id)) return;
-  Sound.ensure();
-  Sound.click();
-});
+/* =====================================================================
+   应用状态
+   ===================================================================== */
+const App = {
+  mode: 'local',        // 'local' | 'room'
+  room: null,
+  roomId: null,
+  myName: '',
+  selfId: null,
+  peers: {},            // peerId -> { name, joined }
+  send: null,
+  trystero: null,
+  currentGame: null
+};
 
 /* =====================================================================
-   扑克牌
+   音量面板
    ===================================================================== */
-const SUITS = [
-  { s: '♠', red: false },
-  { s: '♥', red: true },
-  { s: '♦', red: true },
-  { s: '♣', red: false }
-];
+(function initVolume() {
+  const btn = $('#volBtn'), panel = $('#volPanel'), slider = $('#volSlider'), num = $('#volNum');
+  let lastVolume = 0.7;
+
+  function refresh() {
+    const m = Sound.muted;
+    btn.textContent = m ? '🔇' : (Sound.volume === 0 ? '🔈' : Sound.volume < 0.5 ? '🔉' : '🔊');
+    btn.classList.toggle('muted', m);
+    slider.value = Math.round(Sound.volume * 100);
+    num.textContent = m ? '已静音' : ('音量 ' + Math.round(Sound.volume * 100) + '%');
+  }
+
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    Sound.ensure();
+    panel.classList.toggle('show');
+    if (!panel.classList.contains('show')) {
+      if (Sound.volume === 0 && !Sound.muted) Sound.setVolume(lastVolume);
+    }
+    refresh();
+  });
+
+  slider.addEventListener('input', () => {
+    Sound.ensure();
+    const v = slider.value / 100;
+    if (v > 0) { lastVolume = v; Sound.setMuted(false); }
+    Sound.setVolume(v);
+    refresh();
+  });
+  slider.addEventListener('change', () => { Sound.click(); });
+
+  document.addEventListener('click', e => {
+    if (!panel.contains(e.target) && e.target !== btn) panel.classList.remove('show');
+  });
+
+  refresh();
+  window.__refreshVolume = refresh;
+})();
+
+/* =====================================================================
+   扑克牌基础
+   ===================================================================== */
+const SUITS = [{s:'♠',red:false},{s:'♥',red:true},{s:'♦',red:true},{s:'♣',red:false}];
 const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-const RANK_VAL = {};
-RANKS.forEach((r, i) => { RANK_VAL[r] = i + 2; });
+const RANK_VAL = {}; RANKS.forEach((r,i)=>{ RANK_VAL[r]=i+2; });
 
 function makeDeck() {
   const d = [];
-  for (const su of SUITS)
-    for (const r of RANKS)
-      d.push({ rank: r, val: RANK_VAL[r], suit: su.s, red: su.red });
+  for (const su of SUITS) for (const r of RANKS) d.push({ rank:r, val:RANK_VAL[r], suit:su.s, red:su.red });
   return d;
 }
 function shuffle(a) {
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
+  for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
   return a;
 }
 function cardHTML(c, flip) {
-  return `
-    <div class="playing-card pcard${c.red ? ' red' : ''}${flip ? ' flip-in' : ''}">
-      <div class="pc-top">${c.rank}${c.suit}</div>
-      <div class="pc-mid">${c.suit}</div>
-      <div class="pc-bot">${c.rank}${c.suit}</div>
-    </div>`;
+  return `<div class="pcard${c.red?' red':''}${flip?' flip-in':''}">
+    <div class="pc-top">${c.rank}${c.suit}</div>
+    <div class="pc-mid">${c.suit}</div>
+    <div class="pc-bot">${c.rank}${c.suit}</div></div>`;
 }
-function cardBackHTML() {
-  return `<div class="playing-card pcard back hidden-state"></div>`;
-}
+function cardBackHTML() { return `<div class="pcard back hidden-state"></div>`; }
 
 /* =====================================================================
-   音量开关
+   房间（Trystero）
    ===================================================================== */
-(function initVolBtn() {
-  const btn = $('#volBtn');
-  btn.addEventListener('click', () => {
-    Sound.ensure();
-    Sound.setMuted(!Sound.muted);
-    btn.classList.toggle('muted', Sound.muted);
-    btn.textContent = Sound.muted ? '🔇' : '🔊';
-    if (!Sound.muted) Sound.click();
-  });
+const TRYSTERO_CDNS = [
+  'https://esm.run/trystero',
+  'https://cdn.jsdelivr.net/npm/trystero/+esm',
+  'https://esm.sh/trystero'
+];
+
+async function loadTrystero() {
+  if (App.trystero) return App.trystero;
+  let lastErr;
+  for (const url of TRYSTERO_CDNS) {
+    try {
+      const mod = await import(/* @vite-ignore */ url);
+      if (mod && mod.joinRoom) { App.trystero = mod; return mod; }
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error('无法加载 Trystero');
+}
+
+function genRoomId() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 5; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+function roomLink(roomId) {
+  const url = new URL(location.href);
+  url.hash = '';
+  url.search = '?room=' + encodeURIComponent(roomId);
+  return url.toString();
+}
+
+function myNick() {
+  return App.myName || ('玩家' + Math.floor(Math.random() * 900 + 100));
+}
+
+/* 消息处理 */
+const GameBus = {
+  handlers: {},
+  on(game, fn) { this.handlers[game] = fn; },
+  emit(game, data, fromPeer) {
+    const h = this.handlers[game];
+    if (h) h(data, fromPeer);
+  }
+};
+
+async function joinRoomAs(roomId, nick) {
+  App.myName = nick || myNick();
+  try { localStorage.setItem('drink_nick', App.myName); } catch (e) {}
+  App.roomId = roomId;
+  App.mode = 'room';
+  App.peers = {};
+
+  const mod = await loadTrystero();
+  App.selfId = mod.selfId;
+
+  const config = { appId: 'drink-party-game-v1-x7k9' };
+  const room = mod.joinRoom(config, 'drink-' + roomId);
+  App.room = room;
+
+  // ✅ 修复：适配 Trystero 0.25+ 新版 API
+  // makeAction 返回对象，onMessage 是属性，直接赋值
+  const action = room.makeAction('m');
+  App.send = action.send;
+
+  // ✅ 修复：onMessage 是属性，不是函数，直接赋值回调
+  action.onMessage = (data, { peerId }) => {
+    if (!data || !data.t) return;
+    if (data.t === 'hi') {
+      App.peers[peerId] = { name: data.name || '玩家', joined: Date.now() };
+      renderPlayers();
+      renderPeersPanels();
+      // ✅ 修复：发送给特定 peer 时使用 { target: peerId }
+      if (!data.re) action.send({ t: 'hi', name: myNick(), re: 1 }, { target: peerId });
+      Sound.notify();
+    } else if (data.t === 'bye') {
+      delete App.peers[peerId];
+      renderPlayers();
+      renderPeersPanels();
+    } else if (data.t === 'game') {
+      GameBus.emit(data.game, data, peerId);
+    }
+  };
+
+  // ✅ 修复：onPeerJoin / onPeerLeave 是属性，直接赋值
+  room.onPeerJoin = peerId => {
+    action.send({ t: 'hi', name: myNick() }, { target: peerId });
+  };
+  room.onPeerLeave = peerId => {
+    const p = App.peers[peerId];
+    delete App.peers[peerId];
+    renderPlayers();
+    renderPeersPanels();
+    if (p) Sound.hide();
+  };
+
+  // 打开大厅
+  navStack = ['home', 'join', 'lobby'];
+  go('lobby', false);
+
+  $('#lobbyCode').textContent = roomId;
+  renderQR(roomLink(roomId));
+  renderPlayers();
+  renderPeersPanels();
+
+  // 定时心跳，保证列表同步
+  setInterval(() => {
+    if (App.mode === 'room' && App.send) App.send({ t: 'hi', name: myNick() });
+  }, 8000);
+}
+
+function leaveRoom() {
+  if (App.send) { try { App.send({ t: 'bye', name: myNick() }); } catch (e) {} }
+  if (App.room) { try { App.room.leave(); } catch (e) {} }
+  App.room = null; App.roomId = null; App.send = null; App.peers = {};
+  App.mode = 'local';
+  App.currentGame = null;
+  $$('.peers-panel').forEach(p => { p.style.display = 'none'; p.innerHTML = ''; });
+}
+
+function allPlayers() {
+  const list = [{ id: App.selfId || 'me', name: myNick(), isMe: true }];
+  Object.entries(App.peers)
+    .sort((a, b) => (a[1].joined || 0) - (b[1].joined || 0))
+    .forEach(([id, p]) => list.push({ id, name: p.name || '玩家', isMe: false }));
+  return list;
+}
+
+function broadcast(game, data) {
+  if (App.mode === 'room' && App.send) {
+    App.send({ t: 'game', game, name: myNick(), data });
+  }
+}
+
+function renderPlayers() {
+  const el = $('#playersList');
+  if (!el) return;
+  const list = allPlayers();
+  el.innerHTML = list.map(p =>
+    `<div class="player-chip${p.isMe ? ' me' : ''}"><span class="dot"></span>${esc(p.name)}${p.isMe ? ' (我)' : ''}</div>`
+  ).join('');
+  const n = list.length;
+  $('#lobbyMsg').textContent = n > 1
+    ? `已有 ${n} 人在房间，选个游戏开始吧`
+    : '把二维码给朋友扫，或输入房间号加入';
+}
+
+function renderQR(link) {
+  const box = $('#qrBox');
+  try {
+    const qr = qrcode(0, 'M');
+    qr.addData(link);
+    qr.make();
+    box.innerHTML = qr.createImgTag(5, 8);
+  } catch (e) {
+    box.innerHTML = '<div style="color:#333;font-size:12px;padding:20px">二维码生成失败<br>请手动输入房间号</div>';
+  }
+}
+
+function renderPeersPanels() {
+  if (window.__refreshGamePeers) window.__refreshGamePeers();
+}
+
+/* 房间入口按钮 */
+$('#showJoinFormBtn').addEventListener('click', () => {
+  const f = $('#joinForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+});
+$('#createRoomBtn').addEventListener('click', async () => {
+  const nick = $('#nickInput').value.trim() || myNick();
+  const btn = $('#createRoomBtn');
+  btn.disabled = true; btn.textContent = '连 接 中…';
+  try {
+    await joinRoomAs(genRoomId(), nick);
+    Sound.win(2);
+  } catch (e) {
+    alert('创建房间失败：' + (e && e.message ? e.message : e) + '\n请检查网络后重试');
+  } finally {
+    btn.disabled = false; btn.textContent = '创 建 房 间';
+  }
+});
+$('#joinRoomBtn').addEventListener('click', async () => {
+  const code = $('#roomCodeInput').value.trim().toUpperCase();
+  const nick = $('#nickInput').value.trim() || myNick();
+  if (!code) { alert('请输入房间号'); return; }
+  const btn = $('#joinRoomBtn');
+  btn.disabled = true; btn.textContent = '加 入 中…';
+  try {
+    await joinRoomAs(code, nick);
+    Sound.win(2);
+  } catch (e) {
+    alert('加入房间失败：' + (e && e.message ? e.message : e) + '\n请检查网络后重试');
+  } finally {
+    btn.disabled = false; btn.textContent = '加 入 房 间';
+  }
+});
+$('#leaveRoomBtn').addEventListener('click', () => {
+  leaveRoom();
+  navStack = ['home'];
+  go('home', false);
+});
+$('#copyLinkBtn').addEventListener('click', async () => {
+  const link = roomLink(App.roomId);
+  try {
+    await navigator.clipboard.writeText(link);
+    $('#lobbyMsg').textContent = '✅ 链接已复制，发给朋友吧';
+    Sound.notify();
+  } catch (e) {
+    prompt('复制下面的链接：', link);
+  }
+});
+
+/* 房间内游戏入口 */
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-room-game]');
+  if (!b) return;
+  Sound.ensure(); Sound.click();
+  const g = b.dataset.roomGame;
+  navStack = ['home', 'join', 'lobby'];
+  go(g);
+});
+
+/* URL 自动加入 */
+(function autoJoin() {
+  const params = new URLSearchParams(location.search);
+  const roomId = params.get('room');
+  let savedNick = '';
+  try { savedNick = localStorage.getItem('drink_nick') || ''; } catch (e) {}
+  if (roomId) {
+    navStack = ['home', 'join'];
+    go('join', false);
+    $('#nickInput').value = savedNick;
+    $('#roomCodeInput').value = roomId.toUpperCase();
+    $('#joinForm').style.display = 'block';
+    setTimeout(() => {
+      const nick = savedNick || prompt('请输入昵称加入房间 ' + roomId.toUpperCase()) || ('玩家' + Math.floor(Math.random()*900+100));
+      if (nick) {
+        $('#nickInput').value = nick;
+        joinRoomAs(roomId.toUpperCase(), nick).catch(err => {
+          alert('加入失败：' + err.message);
+        });
+      }
+    }, 350);
+  } else {
+    $('#nickInput').value = savedNick;
+  }
 })();
 
 /* =====================================================================
    21 点
    ===================================================================== */
 (function initBJ() {
-  const $hand = $('#bjHand');
-  const $scoreWrap = $('#bjScoreWrap');
-  const $score = $('#bjScore');
-  const $note = $('#bjNote');
-  const $msg = $('#bjMsg');
-  const $startBtn = $('#bjStartBtn');
-  const $playRow = $('#bjPlayRow');
-  const $resetBtn = $('#bjResetBtn');
+  const $hand = $('#bjHand'), $scoreWrap = $('#bjScoreWrap'), $score = $('#bjScore'),
+        $note = $('#bjNote'), $msg = $('#bjMsg'), $startBtn = $('#bjStartBtn'),
+        $playRow = $('#bjPlayRow'), $resetBtn = $('#bjResetBtn'), $peers = $('#bjPeers');
 
-  let deck = [];
-  let hand = [];
-  let state = 'idle';
+  let deck = [], hand = [], state = 'idle';
+  let peerState = {};
 
   function handValue(cards) {
     let sum = 0, aces = 0;
@@ -728,121 +1090,120 @@ function cardBackHTML() {
 
   function renderHand() {
     if (!hand.length) {
-      $hand.innerHTML = `
-        <div class="card-slot">🂠</div>
-        <div class="card-slot">🂠</div>
-      `;
+      $hand.innerHTML = `<div class="card-slot">🂠</div><div class="card-slot">🂠</div>`;
       return;
     }
     $hand.innerHTML = hand.map(c => cardHTML(c)).join('');
-    $$('.pcard', $hand).forEach((el, i) => {
-      el.style.animationDelay = (i * 0.12) + 's';
-    });
+    $$('.pcard', $hand).forEach((el, i) => el.style.animationDelay = (i * 0.12) + 's');
   }
 
   function updateScore() {
-    if (!hand.length) {
-      $scoreWrap.style.display = 'none';
-      return;
-    }
+    if (!hand.length) { $scoreWrap.style.display = 'none'; return; }
     $scoreWrap.style.display = 'block';
     const v = handValue(hand);
     $score.textContent = v;
     $score.className = 'val';
-
-    if (v > 21) {
-      $score.classList.add('bust');
-      $note.textContent = '💥 爆 牌';
-    } else if (v === 21 && hand.length === 2) {
-      $score.classList.add('bj');
-      $note.textContent = '🎉 BLACKJACK！';
-    } else if (v === 21) {
-      $score.classList.add('bj');
-      $note.textContent = '👑 二 十 一 点';
-    } else if (v >= 18) {
-      $note.textContent = '💪 很 不 错';
-    } else {
-      $note.textContent = '';
-    }
+    if (v > 21) { $score.classList.add('bust'); $note.textContent = '💥 爆 牌'; }
+    else if (v === 21 && hand.length === 2) { $score.classList.add('bj'); $note.textContent = '🎉 BLACKJACK！'; }
+    else if (v === 21) { $score.classList.add('bj'); $note.textContent = '👑 二 十 一 点'; }
+    else if (v >= 18) $note.textContent = '💪 很 不 错';
+    else $note.textContent = '';
   }
 
-  function setMsg(text, type) {
-    $msg.textContent = text;
-    $msg.className = 'msg' + (type ? ' ' + type : '');
+  function setMsg(t, type) { $msg.textContent = t; $msg.className = 'msg' + (type ? ' ' + type : ''); }
+
+  function myStatus() {
+    if (state === 'idle' || state === 'dealing') return 'playing';
+    const v = handValue(hand);
+    if (v > 21) return 'bust';
+    if (state === 'done' || state === 'stand') return 'stand';
+    return 'playing';
+  }
+
+  function pushState() {
+    if (App.mode !== 'room') return;
+    broadcast('bj', {
+      value: hand.length ? handValue(hand) : null,
+      count: hand.length,
+      status: myStatus()
+    });
+  }
+
+  function renderPeers() {
+    if (App.mode !== 'room') { $peers.style.display = 'none'; return; }
+    $peers.style.display = 'flex';
+    const me = {
+      name: myNick(),
+      value: hand.length ? handValue(hand) : null,
+      status: myStatus(),
+      isMe: true
+    };
+    const rows = [me];
+    Object.entries(peerState).forEach(([id, s]) => {
+      rows.push({ name: s.name || '玩家', value: s.value, status: s.status, isMe: false, id });
+    });
+    $peers.innerHTML = rows.map(r => {
+      let cls = 'peer-row' + (r.isMe ? ' me' : '');
+      if (r.status === 'bust') cls += ' bust';
+      else if (r.status === 'stand') cls += ' stand';
+      let vTxt = '—';
+      if (r.value != null) vTxt = r.value + ' 点';
+      if (r.status === 'bust') vTxt = r.value + ' 爆';
+      return `<div class="${cls}"><span class="pname">${esc(r.name)}${r.isMe ? ' (我)' : ''}</span><span class="pval">${vTxt}</span></div>`;
+    }).join('');
+  }
+  window.__bjRefreshPeers = renderPeers;
+  if (!window.__refreshGamePeers) {
+    window.__refreshGamePeers = () => { if (window.__bjRefreshPeers) window.__bjRefreshPeers(); };
   }
 
   function showIdle() {
-    state = 'idle';
-    hand = [];
-    deck = [];
-    renderHand();
-    $scoreWrap.style.display = 'none';
+    state = 'idle'; hand = []; deck = [];
+    renderHand(); $scoreWrap.style.display = 'none';
     $startBtn.style.display = 'block';
     $playRow.style.display = 'none';
     $resetBtn.style.display = 'none';
     setMsg('点「开始发牌」拿两张牌');
+    renderPeers();
   }
 
   async function start() {
     if (state !== 'idle') return;
-    state = 'playing';
+    state = 'dealing';
     deck = shuffle(makeDeck());
     hand = [];
-
     $startBtn.style.display = 'none';
     $msg.textContent = '发牌中…';
+    Sound.ensure(); Sound.startDeal();
 
-    Sound.ensure();
-    Sound.startDeal();
-
-    hand.push(deck.pop());
-    renderHand();
-    Sound.deal();
+    hand.push(deck.pop()); renderHand(); Sound.deal();
     await sleep(220);
-
-    hand.push(deck.pop());
-    renderHand();
-    Sound.deal();
+    hand.push(deck.pop()); renderHand(); Sound.deal();
     await sleep(280);
 
-    updateScore();
+    updateScore(); renderPeers(); pushState();
 
     const v = handValue(hand);
-    if (v === 21) {
-      Sound.win(3);
-      finish(true);
-      return;
-    }
+    if (v === 21) { Sound.win(3); finish(true); return; }
 
+    state = 'playing';
     $playRow.style.display = 'flex';
     setMsg('选择「要牌」继续，或「停牌」结束');
   }
 
   async function hit() {
     if (state !== 'playing') return;
-    Sound.ensure();
-    Sound.hit();
-
+    Sound.ensure(); Sound.hit();
     hand.push(deck.pop());
-    renderHand();
-    updateScore();
-
+    renderHand(); updateScore(); renderPeers(); pushState();
     const v = handValue(hand);
-    if (v > 21) {
-      await sleep(280);
-      Sound.bust();
-      finish(true);
-    } else if (v === 21) {
-      await sleep(260);
-      Sound.win(2);
-      finish(true);
-    }
+    if (v > 21) { await sleep(280); Sound.bust(); finish(true); }
+    else if (v === 21) { await sleep(260); Sound.win(2); finish(true); }
   }
 
   function stand() {
     if (state !== 'playing') return;
-    Sound.ensure();
-    Sound.stand();
+    Sound.ensure(); Sound.stand();
     finish(false);
   }
 
@@ -851,169 +1212,153 @@ function cardBackHTML() {
     $playRow.style.display = 'none';
     $startBtn.style.display = 'none';
     $resetBtn.style.display = 'block';
-
     const v = handValue(hand);
-    if (v > 21) {
-      setMsg(`💥 ${v} 点，爆牌了`, 'bad');
-    } else if (v === 21) {
-      setMsg(`🎉 ${v} 点，完美！`, 'good');
-    } else {
-      setMsg(`✅ 停牌，最终 ${v} 点`, 'big');
-    }
+    if (v > 21) setMsg(`💥 ${v} 点，爆牌了`, 'bad');
+    else if (v === 21) setMsg(`🎉 ${v} 点，完美！`, 'good');
+    else setMsg(`✅ 停牌，最终 ${v} 点`, 'big');
+    renderPeers(); pushState();
   }
 
   $startBtn.addEventListener('click', start);
   $('#bjHitBtn').addEventListener('click', hit);
   $('#bjStandBtn').addEventListener('click', stand);
-
   $resetBtn.addEventListener('click', () => {
-    Sound.ensure();
-    Sound.restart();
-    showIdle();
+    Sound.ensure(); Sound.restart(); showIdle(); pushState();
+  });
+
+  GameBus.on('bj', (data, peerId) => {
+    if (!peerId || !data || !data.data) return;
+    const d = data.data;
+    const prev = peerState[peerId];
+    if (!prev || prev.value !== d.value || prev.status !== d.status) {
+      peerState[peerId] = { name: data.name || '玩家', value: d.value, count: d.count, status: d.status };
+      renderPeers();
+    } else {
+      peerState[peerId].name = data.name || '玩家';
+    }
   });
 
   showIdle();
+  window.__bjReset = () => { showIdle(); peerState = {}; };
 })();
 
+/* 监听进入游戏重置 */
+const _origGo = go;
+go = function(id, push) {
+  if (id !== App.currentGame) {
+    if (id === 'bj' && window.__bjReset) window.__bjReset();
+    if (id === 'zjh' && window.__zjhReset) window.__zjhReset();
+    if (id === 'dice' && window.__diceReset) window.__diceReset();
+    if (id === 'ddz' && window.__ddzReset) window.__ddzReset();
+    if (id === 'bomb' && window.__bombReset) window.__bombReset();
+    App.currentGame = id;
+  }
+  _origGo(id, push);
+};
+
 /* =====================================================================
-   炸金花（★ 支持闷牌）
-   state: idle → hidden(闷牌) → revealed(已看牌)
+   炸金花
    ===================================================================== */
 (function initZJH() {
-  const $hand = $('#zjhHand');
-  const $scoreWrap = $('#zjhScoreWrap');
-  const $handName = $('#zjhHandName');
-  const $note = $('#zjhNote');
-  const $msg = $('#zjhMsg');
-  const $mainBtn = $('#zjhMainBtn');
-  const $resetBtn = $('#zjhResetBtn');
+  const $hand = $('#zjhHand'), $scoreWrap = $('#zjhScoreWrap'), $handName = $('#zjhHandName'),
+        $note = $('#zjhNote'), $msg = $('#zjhMsg'), $mainBtn = $('#zjhMainBtn'),
+        $resetBtn = $('#zjhResetBtn'), $peers = $('#zjhPeers');
 
-  let state = 'idle';
-  let currentHand = [];
-  let currentEval = null;
+  let state = 'idle', currentHand = [], currentEval = null;
+  let peerState = {};
 
-  /* 牌型评估 */
   function evaluate(cards) {
-    const vals = cards.map(c => c.val).sort((a, b) => b - a);
+    const vals = cards.map(c => c.val).sort((a,b)=>b-a);
     const suits = cards.map(c => c.suit);
-    const isFlush = suits[0] === suits[1] && suits[1] === suits[2];
+    const isFlush = suits[0]===suits[1] && suits[1]===suits[2];
+    const asc = [...vals].sort((a,b)=>a-b);
+    let isStraight = false, straightHigh = 0;
+    if (asc[1]===asc[0]+1 && asc[2]===asc[1]+1) { isStraight = true; straightHigh = asc[2]; }
+    else if (asc[0]===2 && asc[1]===3 && asc[2]===14) { isStraight = true; straightHigh = 3; }
 
-    const asc = [...vals].sort((a, b) => a - b);
-    let isStraight = false;
-    let straightHigh = 0;
-
-    if (asc[1] === asc[0] + 1 && asc[2] === asc[1] + 1) {
-      isStraight = true;
-      straightHigh = asc[2];
-    } else if (asc[0] === 2 && asc[1] === 3 && asc[2] === 14) {
-      isStraight = true;
-      straightHigh = 3;
+    if (vals[0]===vals[1] && vals[1]===vals[2]) return { level:6, name:'豹子', desc:'三张一样，最大牌型' };
+    if (isFlush && isStraight) return { level:5, name:'顺金', desc:'同花顺，第二强' };
+    if (isFlush) return { level:4, name:'金花', desc:'三张同花色' };
+    if (isStraight) return { level:3, name:'顺子', desc:'三张连号' };
+    if (vals[0]===vals[1] || vals[1]===vals[2]) {
+      let pairVal = vals[0]===vals[1] ? vals[0] : vals[1];
+      return { level:2, name:'对子', desc: RANKS[pairVal-2] + ' 一对' };
     }
-
-    if (vals[0] === vals[1] && vals[1] === vals[2])
-      return { level: 6, name: '豹子', desc: '三张一样，最大牌型' };
-
-    if (isFlush && isStraight)
-      return { level: 5, name: '顺金', desc: '同花顺，第二强' };
-
-    if (isFlush)
-      return { level: 4, name: '金花', desc: '三张同花色' };
-
-    if (isStraight)
-      return { level: 3, name: '顺子', desc: '三张连号' };
-
-    if (vals[0] === vals[1] || vals[1] === vals[2]) {
-      let pairVal, singleVal;
-      if (vals[0] === vals[1]) { pairVal = vals[0]; singleVal = vals[2]; }
-      else { pairVal = vals[1]; singleVal = vals[0]; }
-      const pairRank = RANKS[pairVal - 2];
-      return { level: 2, name: '对子', desc: `${pairRank} 一对` };
-    }
-
-    const topRank = RANKS[vals[0] - 2];
-    return { level: 1, name: '单张', desc: `最大 ${topRank}` };
+    return { level:1, name:'单张', desc: '最大 ' + RANKS[vals[0]-2] };
   }
 
-  /* ---------- 状态渲染 ---------- */
+  function setMsg(t, type) { $msg.textContent = t; $msg.className = 'msg' + (type ? ' ' + type : ''); }
+
+  function renderPeers() {
+    if (App.mode !== 'room') { $peers.style.display = 'none'; return; }
+    $peers.style.display = 'flex';
+    const me = { name: myNick(), looked: state === 'revealed', isMe: true };
+    const rows = [me];
+    Object.entries(peerState).forEach(([id, s]) => rows.push({ name: s.name || '玩家', looked: s.looked, isMe: false }));
+    $peers.innerHTML = rows.map(r =>
+      `<div class="peer-row${r.isMe ? ' me' : ''}${r.looked ? ' stand' : ''}">
+        <span class="pname">${esc(r.name)}${r.isMe ? ' (我)' : ''}</span>
+        <span class="pval">${r.looked ? '已看牌' : '闷牌中'}</span>
+      </div>`
+    ).join('');
+  }
+
+  function pushState() {
+    if (App.mode !== 'room') return;
+    broadcast('zjh', { looked: state === 'revealed' });
+  }
 
   function showIdle() {
-    state = 'idle';
-    currentHand = [];
-    currentEval = null;
-
-    $hand.innerHTML = `
-      <div class="card-slot">🂠</div>
-      <div class="card-slot">🂠</div>
-      <div class="card-slot">🂠</div>
-    `;
+    state = 'idle'; currentHand = []; currentEval = null;
+    $hand.innerHTML = `<div class="card-slot">🂠</div><div class="card-slot">🂠</div><div class="card-slot">🂠</div>`;
     $scoreWrap.style.display = 'none';
-    $mainBtn.style.display = 'block';
-    $mainBtn.disabled = false;
+    $mainBtn.style.display = 'block'; $mainBtn.disabled = false;
     $mainBtn.textContent = '开 始 发 牌';
     $resetBtn.style.display = 'none';
-    $msg.textContent = '点「开始发牌」拿三张牌';
-    $msg.className = 'msg';
+    setMsg('点「开始发牌」拿三张牌');
+    renderPeers();
   }
 
   function enterHiddenState() {
     state = 'hidden';
     $scoreWrap.style.display = 'none';
-    $mainBtn.style.display = 'block';
-    $mainBtn.disabled = false;
+    $mainBtn.style.display = 'block'; $mainBtn.disabled = false;
     $mainBtn.textContent = '看 牌';
     $resetBtn.style.display = 'block';
-    $msg.textContent = '🂠 闷牌中 · 不看牌就点「看牌」打开';
-    $msg.className = 'msg hidden-tip';
+    setMsg('🂠 闷牌中 · 不看牌就点「看牌」打开', 'hidden-tip');
+    renderPeers(); pushState();
   }
 
-  /* ---------- 发牌（默认闷牌） ---------- */
   async function start() {
     if (state !== 'idle') return;
     state = 'dealing';
-
-    $mainBtn.disabled = true;
-    $mainBtn.textContent = '发牌中…';
-    $msg.textContent = '发牌中…';
-    $msg.className = 'msg';
-
-    Sound.ensure();
-    Sound.startDeal();
-
+    $mainBtn.disabled = true; $mainBtn.textContent = '发牌中…';
+    setMsg('发牌中…');
+    Sound.ensure(); Sound.startDeal();
     const deck = shuffle(makeDeck());
     currentHand = [deck.pop(), deck.pop(), deck.pop()];
     currentEval = evaluate(currentHand);
 
-    // 逐张发牌，全部显示牌背
     $hand.innerHTML = '';
     for (let i = 0; i < 3; i++) {
       const wrap = document.createElement('div');
       wrap.innerHTML = cardBackHTML();
       const el = wrap.firstElementChild;
-      el.style.animationDelay = '0s';
       $hand.appendChild(el);
       Sound.deal();
       await sleep(210);
     }
-
     await sleep(280);
-
-    // ★ 进入闷牌状态 —— 不翻开，玩家自己决定
     enterHiddenState();
     Sound.hide();
   }
 
-  /* ---------- 看牌（逐张翻开） ---------- */
   async function reveal() {
     if (state !== 'hidden') return;
     state = 'revealing';
-    $mainBtn.disabled = true;
-    $mainBtn.textContent = '看牌中…';
-    $msg.textContent = '翻牌中…';
-    $msg.className = 'msg';
-
+    $mainBtn.disabled = true; $mainBtn.textContent = '看牌中…';
+    setMsg('翻牌中…');
     Sound.ensure();
-
-    // 逐张翻开，每张加翻牌音效
     for (let i = 0; i < 3; i++) {
       const cards = $$('.pcard', $hand);
       if (!cards[i]) break;
@@ -1021,51 +1366,38 @@ function cardBackHTML() {
       Sound.flip();
       await sleep(230);
     }
-
     await sleep(240);
-
-    // 显示牌型
     const ev = currentEval;
     $scoreWrap.style.display = 'block';
     $handName.textContent = ev.name;
     $handName.className = 'val hand-name';
     $note.textContent = ev.desc;
+    if (ev.level >= 5) { $handName.style.color='#6ee7a8'; $handName.style.textShadow='0 0 26px rgba(60,255,120,.85)'; Sound.win(3); }
+    else if (ev.level >= 3) { $handName.style.color='#ffd24a'; $handName.style.textShadow='0 0 26px rgba(255,200,0,.85)'; Sound.win(2); }
+    else { $handName.style.color='#cfc3ee'; $handName.style.textShadow='0 0 16px rgba(200,200,255,.4)'; Sound.win(1); }
 
-    if (ev.level >= 5) {
-      $handName.style.color = '#6ee7a8';
-      $handName.style.textShadow = '0 0 26px rgba(60,255,120,.85)';
-      Sound.win(3);
-    } else if (ev.level >= 3) {
-      $handName.style.color = '#ffd24a';
-      $handName.style.textShadow = '0 0 26px rgba(255,200,0,.85)';
-      Sound.win(2);
-    } else {
-      $handName.style.color = '#cfc3ee';
-      $handName.style.textShadow = '0 0 16px rgba(200,200,255,.4)';
-      Sound.win(1);
-    }
-
-    // 已看牌状态：主按钮隐藏，只留重新发牌
     state = 'revealed';
     $mainBtn.style.display = 'none';
     $resetBtn.style.display = 'block';
-    $msg.className = 'msg good';
-    $msg.textContent = '牌已打开，亮出手机跟大家比吧';
+    setMsg('牌已打开，亮出手机跟大家比吧', 'good');
+    renderPeers(); pushState();
   }
 
-  /* ---------- 主按钮点击 ---------- */
   $mainBtn.addEventListener('click', () => {
     if (state === 'idle') start();
     else if (state === 'hidden') reveal();
   });
-
-  /* ---------- 重新发牌 ---------- */
   $resetBtn.addEventListener('click', () => {
-    Sound.ensure();
-    Sound.restart();
-    showIdle();
+    Sound.ensure(); Sound.restart(); showIdle(); pushState();
   });
 
+  GameBus.on('zjh', (data, peerId) => {
+    if (!peerId || !data || !data.data) return;
+    peerState[peerId] = { name: data.name || '玩家', looked: !!data.data.looked };
+    renderPeers();
+  });
+
+  window.__zjhReset = () => { showIdle(); peerState = {}; };
   showIdle();
 })();
 
@@ -1073,80 +1405,65 @@ function cardBackHTML() {
    摇骰子
    ===================================================================== */
 (function initDice() {
-  const PIPS = {
-    1: [4],
-    2: [0, 8],
-    3: [0, 4, 8],
-    4: [0, 2, 6, 8],
-    5: [0, 2, 4, 6, 8],
-    6: [0, 2, 3, 5, 6, 8]
-  };
+  const PIPS = { 1:[4], 2:[0,8], 3:[0,4,8], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8] };
+  const $area = $('#diceArea'), $total = $('#diceTotal'), $msg = $('#diceMsg'),
+        $rollBtn = $('#diceRollBtn'), $peers = $('#dicePeers');
 
-  const $area = $('#diceArea');
-  const $total = $('#diceTotal');
-  const $msg = $('#diceMsg');
-  const $rollBtn = $('#diceRollBtn');
-
-  let diceCount = 2;
-  let rolling = false;
+  let diceCount = 2, rolling = false;
+  let peerState = {};
 
   function makeDie() {
     const die = document.createElement('div');
     die.className = 'die';
     for (let i = 0; i < 9; i++) {
-      const cell = document.createElement('div');
-      cell.className = 'die-cell';
-      const pip = document.createElement('div');
-      pip.className = 'die-pip';
-      cell.appendChild(pip);
-      die.appendChild(cell);
+      const cell = document.createElement('div'); cell.className = 'die-cell';
+      const pip = document.createElement('div'); pip.className = 'die-pip';
+      cell.appendChild(pip); die.appendChild(cell);
     }
     return die;
   }
-
   function setDie(die, value) {
     const cells = [...die.children];
     const on = PIPS[value] || [];
     cells.forEach((c, i) => c.classList.toggle('on', on.includes(i)));
   }
-
   function renderDice(values) {
     $area.innerHTML = '';
-    values.forEach(v => {
-      const die = makeDie();
-      setDie(die, v);
-      $area.appendChild(die);
-    });
+    values.forEach(v => { const die = makeDie(); setDie(die, v); $area.appendChild(die); });
+  }
+  function initArea() {
+    renderDice(Array.from({ length: diceCount }, () => 1));
+    $total.textContent = '—';
   }
 
-  function initArea() {
-    const initial = Array.from({ length: diceCount }, () => 1);
-    renderDice(initial);
-    $total.textContent = '—';
+  function renderPeers() {
+    if (App.mode !== 'room') { $peers.style.display = 'none'; return; }
+    $peers.style.display = 'flex';
+    const rows = Object.entries(peerState)
+      .map(([id, s]) => ({ name: s.name || '玩家', total: s.total, values: s.values }));
+    rows.sort((a, b) => (b.total || 0) - (a.total || 0));
+    if (!rows.length) { $peers.innerHTML = ''; return; }
+    $peers.innerHTML = rows.map((r, i) =>
+      `<div class="peer-row${i === 0 && r.total ? ' stand' : ''}">
+        <span class="pname">${i === 0 && r.total ? '🏆 ' : ''}${esc(r.name)}</span>
+        <span class="pval">${r.total != null ? r.total : '—'}</span>
+      </div>`
+    ).join('');
   }
 
   async function roll() {
     if (rolling) return;
     rolling = true;
     $rollBtn.disabled = true;
-
-    const finalValues = Array.from({ length: diceCount }, () =>
-      1 + Math.floor(Math.random() * 6));
+    const finalValues = Array.from({ length: diceCount }, () => 1 + Math.floor(Math.random() * 6));
 
     $area.innerHTML = '';
     const dice = finalValues.map(() => {
-      const d = makeDie();
-      d.classList.add('rolling');
-      $area.appendChild(d);
-      return d;
+      const d = makeDie(); d.classList.add('rolling'); $area.appendChild(d); return d;
     });
-
     $total.textContent = '…';
-    $msg.className = 'msg';
-    $msg.textContent = '摇骰子中…';
-
-    Sound.ensure();
-    Sound.roll();
+    $msg.className = 'msg'; $msg.textContent = '摇骰子中…';
+    Sound.ensure(); Sound.roll();
 
     const iv = setInterval(() => {
       dice.forEach(d => setDie(d, 1 + Math.floor(Math.random() * 6)));
@@ -1155,23 +1472,17 @@ function cardBackHTML() {
 
     await sleep(900);
     clearInterval(iv);
-
-    dice.forEach((d, i) => {
-      d.classList.remove('rolling');
-      setDie(d, finalValues[i]);
-    });
-
+    dice.forEach((d, i) => { d.classList.remove('rolling'); setDie(d, finalValues[i]); });
     Sound.land();
 
     const total = finalValues.reduce((a, b) => a + b, 0);
     $total.textContent = total;
-
     $msg.className = 'msg big';
     $msg.textContent = `🎲 ${finalValues.join(' + ')} = ${total}`;
+    if (total >= diceCount * 5) setTimeout(() => Sound.win(2), 200);
 
-    if (total >= diceCount * 5) {
-      setTimeout(() => Sound.win(2), 200);
-    }
+    if (App.mode === 'room') broadcast('dice', { total, values: finalValues });
+    renderPeers();
 
     rolling = false;
     $rollBtn.disabled = false;
@@ -1180,21 +1491,534 @@ function cardBackHTML() {
   $$('#diceCountPicker .count-btn').forEach(b => {
     b.addEventListener('click', () => {
       if (rolling) return;
-      Sound.ensure();
-      Sound.select();
+      Sound.ensure(); Sound.select();
       diceCount = +b.dataset.count;
-      $$('#diceCountPicker .count-btn').forEach(x =>
-        x.classList.toggle('active', x === b));
+      $$('#diceCountPicker .count-btn').forEach(x => x.classList.toggle('active', x === b));
       initArea();
       $msg.className = 'msg';
       $msg.textContent = `已选择 ${diceCount} 颗骰子`;
     });
   });
-
   $rollBtn.addEventListener('click', roll);
 
+  GameBus.on('dice', (data, peerId) => {
+    if (!peerId || !data || !data.data) return;
+    peerState[peerId] = { name: data.name || '玩家', total: data.data.total, values: data.data.values };
+    renderPeers();
+  });
+
+  window.__diceReset = () => { peerState = {}; initArea(); $total.textContent='—'; $msg.className='msg'; $msg.textContent='选好骰子个数，点「摇 骰 子」'; renderPeers(); };
   initArea();
 })();
+
+/* =====================================================================
+   斗地主（简化完整版）
+   ===================================================================== */
+(function initDDZ() {
+  const $hand = $('#ddzHand'), $table = $('#ddzTable'), $msg = $('#ddzMsg'),
+        $startBtn = $('#ddzStartBtn'), $playRow = $('#ddzPlayRow'),
+        $playBtn = $('#ddzPlayBtn'), $passBtn = $('#ddzPassBtn'), $resetBtn = $('#ddzResetBtn'),
+        $landlord = $('#ddzLandlord'), $turn = $('#ddzTurn');
+
+  const DDZ = {
+    hands: [[], [], []],
+    myIndex: -1,
+    landlord: -1,
+    current: 0,
+    lastPlay: null,
+    passCount: 0,
+    phase: 'idle',
+    players: []
+  };
+
+  let selected = new Set();
+
+  function cardType(cards) {
+    if (!cards || !cards.length) return null;
+    const vals = cards.map(c => c.v).sort((a, b) => a - b);
+    const n = vals.length;
+    const counts = {};
+    vals.forEach(v => counts[v] = (counts[v] || 0) + 1);
+    const keys = Object.keys(counts).map(Number).sort((a, b) => a - b);
+    const cnts = keys.map(k => counts[k]).sort((a, b) => b - a);
+
+    if (n === 2 && vals[0] === 16 && vals[1] === 17) return { type: 'rocket', val: 100, len: 2 };
+    if (n === 4 && cnts[0] === 4) return { type: 'bomb', val: vals[0], len: 4 };
+    if (n === 1) return { type: 'single', val: vals[0], len: 1 };
+    if (n === 2 && cnts[0] === 2) return { type: 'pair', val: vals[0], len: 2 };
+    if (n === 3 && cnts[0] === 3) return { type: 'triple', val: vals[0], len: 3 };
+    if (n === 4 && cnts[0] === 3 && cnts[1] === 1) {
+      const tv = keys.find(k => counts[k] === 3);
+      return { type: 'triple1', val: tv, len: 4 };
+    }
+    if (n === 5 && cnts[0] === 3 && cnts[1] === 2) {
+      const tv = keys.find(k => counts[k] === 3);
+      return { type: 'triple2', val: tv, len: 5 };
+    }
+    if (n >= 5 && keys.length === n && keys[n - 1] <= 14 && keys[n - 1] - keys[0] === n - 1) {
+      return { type: 'straight', val: keys[n - 1], len: n };
+    }
+    if (n >= 6 && n % 2 === 0 && keys.length === n / 2 && cnts.every(c => c === 2)) {
+      if (keys[keys.length - 1] <= 14 && keys[keys.length - 1] - keys[0] === keys.length - 1) {
+        return { type: 'pairStraight', val: keys[keys.length - 1], len: n };
+      }
+    }
+    return null;
+  }
+
+  function canBeat(a, b) {
+    if (!b) return true;
+    if (a.type === 'rocket') return true;
+    if (b.type === 'rocket') return false;
+    if (a.type === 'bomb' && b.type !== 'bomb') return true;
+    if (b.type === 'bomb' && a.type !== 'bomb') return false;
+    if (a.type !== b.type || a.len !== b.len) return false;
+    return a.val > b.val;
+  }
+
+  function makeDDZDeck() {
+    const d = [];
+    const suits = ['♠', '♥', '♣', '♦'];
+    const ranks = [['3',3],['4',4],['5',5],['6',6],['7',7],['8',8],['9',9],['10',10],
+                   ['J',11],['Q',12],['K',13],['A',14],['2',15]];
+    for (const s of suits) for (const [r, v] of ranks) d.push({ r, v, s, red: (s === '♥' || s === '♦') });
+    d.push({ r: '小', v: 16, s: '王', red: false });
+    d.push({ r: '大', v: 17, s: '王', red: true });
+    return d;
+  }
+
+  function renderHand() {
+    if (DDZ.myIndex < 0) { $hand.innerHTML = ''; return; }
+    const hand = DDZ.hands[DDZ.myIndex] || [];
+    const sorted = [...hand].sort((a, b) => b.v - a.v || a.s.localeCompare(b.s));
+    $hand.innerHTML = sorted.map(c => {
+      const key = c.r + c.s + c.v;
+      const sel = selected.has(key) ? ' sel' : '';
+      const red = c.red ? ' red' : '';
+      return `<div class="dcard${red}${sel}" data-key="${esc(key)}">
+        <span>${c.r}</span><span class="s2">${c.s}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function renderTable() {
+    if (!DDZ.lastPlay) { $table.innerHTML = '<span style="color:rgba(255,255,255,.25);font-size:12px;letter-spacing:2px">等待出牌…</span>'; return; }
+    const cards = DDZ.lastPlay.cards;
+    $table.innerHTML = cards.map(c => {
+      const red = c.red ? ' red' : '';
+      return `<div class="dcard${red}"><span>${c.r}</span><span class="s2">${c.s}</span></div>`;
+    }).join('');
+  }
+
+  function renderInfo() {
+    $landlord.textContent = DDZ.landlord >= 0 ? (DDZ.players[DDZ.landlord] ? DDZ.players[DDZ.landlord].name : '?') : '—';
+    $turn.textContent = DDZ.phase === 'play' ? (DDZ.players[DDZ.current] ? DDZ.players[DDZ.current].name : '?') : '—';
+  }
+
+  function setMsg(t, type) { $msg.textContent = t; $msg.className = 'msg' + (type ? ' ' + type : ''); }
+
+  function resetGame() {
+    DDZ.hands = [[], [], []];
+    DDZ.myIndex = -1; DDZ.landlord = -1; DDZ.current = 0;
+    DDZ.lastPlay = null; DDZ.passCount = 0; DDZ.phase = 'idle';
+    DDZ.players = [];
+    selected = new Set();
+    $hand.innerHTML = '';
+    $table.innerHTML = '';
+    $startBtn.style.display = 'block'; $startBtn.disabled = false;
+    $startBtn.textContent = '开 始 游 戏';
+    $playRow.style.display = 'none';
+    $resetBtn.style.display = 'none';
+    renderInfo(); renderTable();
+    setMsg(App.mode === 'room' ? '需要 3 位玩家 · 点「开始游戏」发牌' : '本地模式暂不支持斗地主，请创建房间后 3 人一起玩');
+  }
+
+  function isMyTurn() {
+    return DDZ.phase === 'play' && DDZ.players[DDZ.current] && DDZ.players[DDZ.current].isMe;
+  }
+
+  function hostStart() {
+    const players = allPlayers();
+    if (players.length < 3) { setMsg('需要 3 位玩家才能开始（当前 ' + players.length + ' 人）', 'bad'); return; }
+    const seated = players.slice(0, 3);
+    DDZ.players = seated;
+    DDZ.myIndex = seated.findIndex(p => p.isMe);
+    DDZ.landlord = Math.floor(Math.random() * 3);
+
+    const deck = shuffle(makeDDZDeck());
+    const hands = [[], [], []];
+    for (let i = 0; i < 51; i++) hands[i % 3].push(deck.pop());
+    const bottom = [deck.pop(), deck.pop(), deck.pop()];
+    hands[DDZ.landlord] = hands[DDZ.landlord].concat(bottom);
+
+    DDZ.hands = hands;
+    DDZ.phase = 'play';
+    DDZ.current = DDZ.landlord;
+    DDZ.lastPlay = null;
+    DDZ.passCount = 0;
+
+    seated.forEach((p, i) => {
+      if (p.isMe) return;
+      const handData = hands[i].map(c => ({ r: c.r, v: c.v, s: c.s, red: c.red }));
+      // ✅ 修复：发送给特定 peer 时使用 { target: p.id }
+      App.send({ t: 'game', game: 'ddz', name: myNick(),
+        data: { act: 'deal', seat: i, hand: handData, players: seated.map(x => ({ name: x.name, id: x.id })),
+                landlord: DDZ.landlord, current: DDZ.current } }, { target: p.id });
+    });
+
+    applyDealt();
+  }
+
+  function applyDealt() {
+    selected = new Set();
+    renderHand(); renderInfo(); renderTable();
+    $startBtn.style.display = 'none';
+    $playRow.style.display = 'flex';
+    $resetBtn.style.display = 'block';
+    $msg.className = 'msg big';
+    $msg.textContent = DDZ.myIndex === DDZ.landlord ? '👑 你是地主，请出牌' : '你是农民，等待地主出牌';
+    if (isMyTurn()) $msg.textContent = '👑 轮到你了，请出牌';
+    updateButtons();
+  }
+
+  function updateButtons() {
+    const my = isMyTurn();
+    $playBtn.disabled = !my;
+    $passBtn.disabled = !my;
+    if (!my) { $playRow.style.display = 'flex'; }
+  }
+
+  function doPlay(cards, fromPeer) {
+    const t = cardType(cards);
+    if (!t) return false;
+    if (!canBeat(t, DDZ.lastPlay ? DDZ.lastPlay.type : null)) return false;
+    DDZ.lastPlay = { player: DDZ.current, cards: cards, type: t };
+    DDZ.passCount = 0;
+
+    const hand = DDZ.hands[DDZ.current];
+    cards.forEach(c => {
+      const idx = hand.findIndex(h => h.r === c.r && h.s === c.s && h.v === c.v);
+      if (idx >= 0) hand.splice(idx, 1);
+    });
+
+    renderTable();
+    if (DDZ.hands[DDZ.current].length === 0) {
+      DDZ.phase = 'over';
+      const winner = DDZ.players[DDZ.current];
+      setMsg((winner.isMe ? '🎉 你' : '🏆 ' + winner.name) + ' 出完了所有牌，赢了！', 'good');
+      Sound.win(3);
+      $playRow.style.display = 'none';
+      $resetBtn.style.display = 'block';
+      if (!fromPeer) broadcast('ddz', { act: 'win', seat: DDZ.current });
+      return true;
+    }
+
+    DDZ.current = (DDZ.current + 1) % 3;
+    renderInfo();
+    if (!fromPeer) {
+      broadcast('ddz', { act: 'play', seat: DDZ.lastPlay.player, cards: cards.map(c => ({ r: c.r, v: c.v, s: c.s, red: c.red })) });
+    }
+    if (isMyTurn()) { setMsg('轮到你出牌了', 'big'); Sound.notify(); }
+    else setMsg('等待 ' + (DDZ.players[DDZ.current] ? DDZ.players[DDZ.current].name : '') + ' 出牌');
+    updateButtons();
+    renderHand();
+    return true;
+  }
+
+  function doPass(fromPeer) {
+    DDZ.passCount++;
+    if (DDZ.passCount >= 2 && DDZ.lastPlay) {
+      DDZ.current = DDZ.lastPlay.player;
+      DDZ.lastPlay = null;
+      DDZ.passCount = 0;
+      renderTable();
+    } else {
+      DDZ.current = (DDZ.current + 1) % 3;
+    }
+    renderInfo();
+    if (!fromPeer) broadcast('ddz', { act: 'pass', seat: DDZ.current });
+    if (isMyTurn()) { setMsg('轮到你出牌了', 'big'); Sound.notify(); }
+    else setMsg('等待 ' + (DDZ.players[DDZ.current] ? DDZ.players[DDZ.current].name : '') + ' 出牌');
+    updateButtons();
+    renderHand();
+  }
+
+  $hand.addEventListener('click', e => {
+    const el = e.target.closest('.dcard');
+    if (!el || DDZ.phase !== 'play') return;
+    const key = el.dataset.key;
+    if (selected.has(key)) selected.delete(key); else selected.add(key);
+    el.classList.toggle('sel');
+    Sound.pop();
+  });
+
+  $startBtn.addEventListener('click', () => {
+    Sound.ensure();
+    if (App.mode !== 'room') { setMsg('斗地主需要房间模式（3 人）', 'bad'); Sound.bust(); return; }
+    if (allPlayers().length < 3) { setMsg('需要 3 位玩家（当前 ' + allPlayers().length + ' 人）', 'bad'); return; }
+    Sound.startDeal();
+    hostStart();
+  });
+
+  $playBtn.addEventListener('click', () => {
+    if (!isMyTurn()) return;
+    const hand = DDZ.hands[DDZ.myIndex];
+    const cards = hand.filter(c => selected.has(c.r + c.s + c.v));
+    if (!cards.length) { setMsg('请先选择要出的牌', 'bad'); return; }
+    const t = cardType(cards);
+    if (!t) { setMsg('牌型不合法', 'bad'); Sound.bust(); return; }
+    if (!canBeat(t, DDZ.lastPlay ? DDZ.lastPlay.type : null)) {
+      setMsg('出的牌管不上，换一手吧', 'bad'); Sound.bust(); return;
+    }
+    Sound.deal();
+    selected = new Set();
+    doPlay(cards.map(c => ({ r: c.r, v: c.v, s: c.s, red: c.red })), false);
+    renderHand();
+  });
+
+  $passBtn.addEventListener('click', () => {
+    if (!isMyTurn()) return;
+    if (!DDZ.lastPlay) { setMsg('你是先手，必须出牌', 'bad'); return; }
+    Sound.stand();
+    selected = new Set();
+    doPass(false);
+    renderHand();
+  });
+
+  $resetBtn.addEventListener('click', () => {
+    Sound.ensure(); Sound.restart();
+    resetGame();
+  });
+
+  GameBus.on('ddz', (data, peerId) => {
+    if (!peerId || !data || !data.data) return;
+    const d = data.data;
+    if (d.act === 'deal') {
+      DDZ.myIndex = d.seat;
+      DDZ.landlord = d.landlord;
+      DDZ.current = d.current;
+      DDZ.players = d.players.map(p => ({ name: p.name, id: p.id, isMe: p.id === App.selfId }));
+      DDZ.hands[DDZ.myIndex] = d.hand;
+      DDZ.phase = 'play';
+      DDZ.lastPlay = null; DDZ.passCount = 0;
+      applyDealt();
+    } else if (d.act === 'play') {
+      DDZ.current = d.seat;
+      doPlay(d.cards, true);
+    } else if (d.act === 'pass') {
+      doPass(true);
+    } else if (d.act === 'win') {
+      DDZ.phase = 'over';
+      const w = DDZ.players[d.seat];
+      setMsg('🏆 ' + (w ? w.name : '?') + ' 赢了！', 'good');
+      $playRow.style.display = 'none';
+      $resetBtn.style.display = 'block';
+      Sound.win(3);
+    }
+  });
+
+  window.__ddzReset = resetGame;
+  resetGame();
+})();
+
+/* =====================================================================
+   数字炸弹
+   ===================================================================== */
+(function initBomb() {
+  const $range = $('#bombRange'), $msg = $('#bombMsg'), $pad = $('#bombPad'), $reset = $('#bombResetBtn');
+
+  let lo = 1, hi = 100, bomb = 0, phase = 'input';
+
+  function newRound() {
+    lo = 1; hi = 100;
+    bomb = Math.floor(Math.random() * 100) + 1;
+    phase = 'input';
+    render();
+    $msg.className = 'msg';
+    $msg.textContent = '输入一个数字，别踩到炸弹';
+  }
+
+  function render() {
+    $range.textContent = lo + ' — ' + hi;
+    const nums = [];
+    const span = hi - lo;
+    const count = Math.min(8, span);
+    if (count <= 0) {
+      $pad.innerHTML = '';
+      return;
+    }
+    const step = Math.max(1, Math.floor(span / (count + 1)));
+    const set = new Set();
+    for (let i = 1; i <= count; i++) {
+      let v = lo + step * i;
+      if (v > hi) v = hi;
+      if (v > lo && v < hi) set.add(v);
+    }
+    let guard = 0;
+    while (set.size < Math.min(6, span - 1) && guard++ < 100) {
+      const v = lo + 1 + Math.floor(Math.random() * Math.max(1, span - 1));
+      if (v > lo && v < hi) set.add(v);
+    }
+    const arr = [...set].sort((a, b) => a - b).slice(0, 8);
+    $pad.innerHTML = arr.map(v => `<button data-v="${v}">${v}</button>`).join('') +
+      `<button class="wide" data-v="custom">✏️ 输入其他数字</button>`;
+  }
+
+  $pad.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b || phase !== 'input') return;
+    Sound.ensure(); Sound.click();
+    if (b.dataset.v === 'custom') {
+      const v = prompt(`输入 ${lo} 到 ${hi} 之间的数字（不含两端）`);
+      if (v === null) return;
+      const n = parseInt(v, 10);
+      if (isNaN(n) || n <= lo || n >= hi) { $msg.textContent = '数字超出范围啦'; $msg.className = 'msg bad'; return; }
+      guess(n);
+    } else {
+      guess(parseInt(b.dataset.v, 10));
+    }
+  });
+
+  function guess(n) {
+    if (n === bomb) {
+      phase = 'boom';
+      $pad.innerHTML = '';
+      $range.textContent = '💥';
+      $msg.className = 'msg bad';
+      $msg.innerHTML = '<div class="boom">💥</div><div style="font-size:16px;margin-top:8px;color:#ff8b9c">中招了！喝一杯 🍺</div>';
+      Sound.boom();
+      setTimeout(() => {
+        if (navigator.vibrate) navigator.vibrate([100, 50, 200]);
+      }, 100);
+      $reset.textContent = '再 来 一 局';
+      return;
+    }
+    Sound.pop();
+    if (n < bomb) { lo = Math.max(lo, n); $msg.textContent = `${n} 小了，范围缩小到 ${lo} — ${hi}`; }
+    else { hi = Math.min(hi, n); $msg.textContent = `${n} 大了，范围缩小到 ${lo} — ${hi}`; }
+    $msg.className = 'msg';
+    render();
+  }
+
+  $reset.addEventListener('click', () => { Sound.ensure(); Sound.restart(); $reset.textContent = '重 新 开 始'; newRound(); });
+
+  window.__bombReset = newRound;
+  newRound();
+})();
+
+/* =====================================================================
+   真心话大冒险
+   ===================================================================== */
+(function initDare() {
+  const TRUTHS = [
+    '说出你最尴尬的一次经历',
+    '你手机相册里第 10 张照片是什么？给大家看',
+    '你最近一次说谎是什么时候？说了什么？',
+    '说出在场每个人一个优点',
+    '你最喜欢在场哪个人的穿搭？为什么',
+    '你做过最疯狂的一件事是什么？',
+    '你最讨厌别人对你做什么？',
+    '你上次哭是什么时候？因为什么？',
+    '在座的人里，你最想跟谁做朋友？',
+    '说出你的一个黑历史',
+    '你最近一次熬夜是为了什么？',
+    '你有没有偷偷讨厌过在场某个人？',
+    '你最想删掉人生中的哪段记忆？',
+    '你的初恋是什么时候？',
+    '你最不能忍受的缺点是什么？',
+    '如果只能带一个人去荒岛，你带谁？',
+    '你最近一次撒谎是在什么时候？',
+    '你最想对在场某个人说的话是什么？',
+    '你手机里最舍不得删的一条消息是什么？',
+    '你最想改掉的坏习惯是什么？'
+  ];
+  const DARES = [
+    '给通讯录第 5 个人发一条「在吗」',
+    '模仿在场一个人说话，让大家猜',
+    '闭眼 10 秒，让旁边的人给你摆个造型',
+    '用最深情的语气念一段广告词',
+    '发一条朋友圈，内容由大家决定（保留 10 分钟）',
+    '用嘴接住别人抛出的花生米（3 次机会）',
+    '唱一首歌的副歌部分，走音也算',
+    '给在场每个人一个真诚的赞美',
+    '做 10 个深蹲，边做边数',
+    '对手机相册最后一张照片做个 10 秒解说',
+    '让左边的人在你脸上画一笔',
+    '学一种动物的叫声，让大家猜',
+    '用英文自我介绍 30 秒',
+    '给微信置顶的人发一句土味情话',
+    '表演一段即兴舞蹈，至少 15 秒',
+    '和右边的人对视 15 秒，先笑的人喝酒',
+    '用手势比划一个成语，让大家猜',
+    '自拍一张丑照发到群里',
+    '背出在场所有人的名字，错一个喝一杯',
+    '接下来 3 轮只能用第三人称称呼自己'
+  ];
+
+  const $box = $('#dareBox'), $spin = $('#dareSpinner'), $type = $('#dareType'),
+        $text = $('#dareText'), $btn = $('#dareBtn');
+
+  let spinning = false;
+
+  async function spin() {
+    if (spinning) return;
+    spinning = true;
+    $btn.disabled = true;
+    Sound.ensure();
+    $spin.textContent = '🎯';
+    $spin.style.display = 'block';
+    $type.textContent = '转 动 中';
+    $type.style.color = '';
+    $text.className = 'dtext';
+    $text.textContent = '……';
+    $box.querySelector('.dtext').style.color = '';
+
+    const iv = setInterval(() => Sound.tick(), 80);
+    await sleep(1100);
+    clearInterval(iv);
+
+    const isTruth = Math.random() < 0.5;
+    const pool = isTruth ? TRUTHS : DARES;
+    const item = pool[Math.floor(Math.random() * pool.length)];
+
+    $spin.style.display = 'none';
+    $type.textContent = isTruth ? '真 心 话' : '大 冒 险';
+    $type.style.color = isTruth ? '#6ee7a8' : '#ff8b9c';
+    $text.textContent = item;
+    $text.className = 'dtext' + (isTruth ? ' truth' : '');
+
+    if (isTruth) Sound.win(1); else Sound.win(2);
+
+    spinning = false;
+    $btn.disabled = false;
+    $btn.textContent = '再 转 一 次';
+  }
+
+  $btn.addEventListener('click', spin);
+})();
+
+/* =====================================================================
+   初始化 & 全局按钮点击音
+   ===================================================================== */
+document.addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  if (btn.dataset.go || btn.dataset.roomGame || btn.dataset.back !== undefined) return;
+  if (btn.id === 'volBtn' || btn.id === 'volSlider') return;
+  if (['bjStartBtn','bjHitBtn','bjStandBtn','bjResetBtn','zjhMainBtn','zjhResetBtn',
+       'diceRollBtn','ddzStartBtn','ddzPlayBtn','ddzPassBtn','ddzResetBtn',
+       'bombResetBtn','dareBtn','createRoomBtn','joinRoomBtn','copyLinkBtn',
+       'leaveRoomBtn','showJoinFormBtn'].includes(btn.id)) return;
+  Sound.ensure(); Sound.click();
+});
+
+document.addEventListener('touchstart', () => Sound.ensure(), { once: true });
+
+window.addEventListener('beforeunload', () => {
+  if (App.send) { try { App.send({ t: 'bye' }); } catch (e) {} }
+});
+
+console.log('%c🍻 喝酒游戏工具已就绪', 'color:#ffd24a;font-size:16px;font-weight:bold');
 </script>
 </body>
 </html>
