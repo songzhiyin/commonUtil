@@ -322,6 +322,12 @@
       color: var(--text);
     }
 
+    .btn.preview-toggle.active {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
     /* 主题切换按钮（仅 light / dark） */
     .btn.icon-only {
       width: 34px;
@@ -443,8 +449,7 @@
       pointer-events: none;
       color: var(--text);
       background: var(--bg);
-      contain: content;                 /* 限制重绘范围，明显降低长文本卡顿 */
-      /* 关键：右侧多留出滚动条宽度，保证与 textarea 换行位置一致 */
+      contain: content;
       padding-right: calc(var(--pad-x) + var(--sbw));
     }
     #hl code {
@@ -469,7 +474,6 @@
       scrollbar-color: var(--scroll-thumb) transparent;
     }
 
-    /* 半透明选区，让下层高亮文字透出来 */
     #editor::selection {
       background: var(--sel-bg);
       color: transparent;
@@ -502,6 +506,106 @@
     .tok-func    { color: var(--tok-func); }
     .tok-tag     { color: var(--tok-tag); font-weight: 600; }
     .tok-punct   { color: var(--tok-punct); }
+
+    /* ---------- Markdown 预览面板 ---------- */
+    .preview-wrap {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: var(--bg);
+      padding: 28px var(--pad-x) 56px;
+      animation: fadeIn .18s ease;
+      z-index: 3;
+    }
+    .preview-wrap[hidden] { display: none; }
+
+    .md-body {
+      max-width: 880px;
+      margin: 0 auto;
+      color: var(--text);
+      font-family: -apple-system, "PingFang SC", "Segoe UI", "Microsoft YaHei", sans-serif;
+      font-size: 15px;
+      line-height: 1.8;
+      word-wrap: break-word;
+    }
+    .md-body h1, .md-body h2, .md-body h3,
+    .md-body h4, .md-body h5, .md-body h6 {
+      font-weight: 650;
+      line-height: 1.3;
+      margin: 1.6em 0 .6em;
+      color: var(--text);
+      letter-spacing: .2px;
+    }
+    .md-body h1 {
+      font-size: 1.9em;
+      padding-bottom: .3em;
+      border-bottom: 1px solid var(--border);
+    }
+    .md-body h2 {
+      font-size: 1.5em;
+      padding-bottom: .25em;
+      border-bottom: 1px solid var(--border);
+    }
+    .md-body h3 { font-size: 1.25em; }
+    .md-body h4 { font-size: 1.1em; }
+    .md-body h5 { font-size: 1em; }
+    .md-body h6 { font-size: .9em; color: var(--text-2); }
+    .md-body p { margin: .8em 0; }
+    .md-body a { color: var(--accent); text-decoration: none; }
+    .md-body a:hover { text-decoration: underline; }
+    .md-body strong { font-weight: 650; }
+    .md-body em { font-style: italic; }
+    .md-body del { color: var(--text-3); }
+    .md-body code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas,
+                   "Liberation Mono", "Courier New", monospace;
+      font-size: .88em;
+      padding: .15em .4em;
+      border-radius: 5px;
+      background: var(--surface-3);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .md-body pre {
+      margin: 1em 0;
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      overflow: auto;
+      font-size: .88em;
+      line-height: 1.6;
+    }
+    .md-body pre code {
+      padding: 0;
+      background: none;
+      border: none;
+      font-size: inherit;
+      white-space: pre;
+    }
+    .md-body blockquote {
+      margin: 1em 0;
+      padding: .35em 1em;
+      border-left: 3px solid var(--accent);
+      background: var(--surface);
+      color: var(--text-2);
+    }
+    .md-body blockquote p { margin: .4em 0; }
+    .md-body ul, .md-body ol {
+      margin: .8em 0;
+      padding-left: 1.8em;
+    }
+    .md-body li { margin: .25em 0; }
+    .md-body hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.8em 0;
+    }
+    .md-body img {
+      max-width: 100%;
+      border-radius: var(--r-sm);
+    }
 
     /* ---------- 空状态 ---------- */
     .empty {
@@ -726,6 +830,7 @@
       .opt-hint { display: none; }
       .statusbar { gap: 8px; font-size: 11px; padding: 6px 12px; }
       .statusbar #stFile { max-width: 28vw; }
+      .preview-wrap { padding: 22px 16px 40px; }
     }
     @media (max-width: 620px) {
       .brand-text { display: none; }
@@ -802,6 +907,15 @@
       还原
     </button>
 
+    <button id="btnPreview" class="btn preview-toggle" hidden title="预览 Markdown（Ctrl+Shift+M）">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 8s2.5-4.5 7-4.5S15 8 15 8s-2.5 4.5-7 4.5S1 8 1 8z"/>
+        <circle cx="8" cy="8" r="2.2"/>
+      </svg>
+      <span id="btnPreviewLabel">预览</span>
+    </button>
+
     <button id="btnTheme" class="btn icon-only" title="主题：浅色" aria-label="切换主题">
       <svg class="ico-light" viewBox="0 0 20 20" fill="none" stroke="currentColor"
            stroke-width="1.5" stroke-linecap="round">
@@ -842,13 +956,14 @@
       <select id="selLang" disabled>
         <option value="auto">自动检测</option>
         <option value="plain">纯文本</option>
+        <option value="markdown">Markdown</option>
         <option value="javascript">JavaScript</option>
         <option value="typescript">TypeScript</option>
         <option value="python">Python</option>
         <option value="markup">HTML / XML</option>
         <option value="css">CSS</option>
         <option value="json">JSON</option>
-        <option value="clike">C / Java / Go / Rust…</option>
+        <option value="clike">C / Java / Kotlin / Go / Rust…</option>
         <option value="shell">Shell</option>
         <option value="sql">SQL</option>
       </select>
@@ -879,6 +994,10 @@
       <pre id="hl" aria-hidden="true"><code id="hlCode"></code></pre>
       <textarea id="editor" spellcheck="false" autocomplete="off"
                 autocorrect="off" autocapitalize="off"></textarea>
+    </div>
+
+    <div class="preview-wrap" id="previewWrap" hidden>
+      <div class="md-body" id="previewBody"></div>
     </div>
   </main>
 
@@ -932,6 +1051,8 @@
     const btnSaveAs   = $('btnSaveAs');
     const btnRevert   = $('btnRevert');
     const btnTheme    = $('btnTheme');
+    const btnPreview  = $('btnPreview');
+    const btnPreviewLabel = $('btnPreviewLabel');
     const fileInput   = $('fileInput');
     const selDecode   = $('selDecode');
     const selEncode   = $('selEncode');
@@ -946,6 +1067,8 @@
     const stDirty     = $('stDirty');
     const dropOverlay = $('dropOverlay');
     const toastEl     = $('toast');
+    const previewWrap = $('previewWrap');
+    const previewBody = $('previewBody');
 
     /* =========================================================
      * 主题管理（手动 light / dark，不跟随系统）
@@ -1059,11 +1182,20 @@
         literals: 'true false null'
       },
       clike: {
-        name: 'C / Java / Go…',
+        name: 'C / Java / Kotlin / Go…',
         lineComments: ['//'],
         blockComments: [['/*', '*/']],
         strings: ['"', "'"],
-        keywords: 'abstract assert auto boolean break byte case catch char class const constexpr continue default defer delete do double else enum extends extern final finally float for friend func go goto if implements import in instanceof int interface let long map namespace new package private protected pub public range register return select short signed sizeof static struct super switch synchronized template this throw throws trait transient try typedef typename type union unsafe unsigned use using var virtual void volatile where while yield async await fn impl match mod mut override println package printf scanf',
+        keywords:
+          'abstract assert auto boolean break byte case catch char class const constexpr continue ' +
+          'default defer delete do double else enum extends extern final finally float for friend ' +
+          'func fun go goto if implements import in instanceof int interface let long map namespace ' +
+          'new object package private protected pub public range register return select short signed ' +
+          'sizeof static struct super switch synchronized template this throw throws trait transient ' +
+          'try typedef typename type union unsafe unsigned use using val var virtual void volatile ' +
+          'where when while yield async await fn impl match mod mut override println package printf ' +
+          'scanf companion data sealed inner suspend lateinit ' +
+          'open internal typealias inline crossinline noinline reified operator infix',
         literals: 'true false null nullptr NULL undefined NaN'
       },
       shell: {
@@ -1087,8 +1219,8 @@
 
     const LANG_NAMES = {
       javascript: 'JavaScript', typescript: 'TypeScript', python: 'Python',
-      markup: 'HTML/XML', css: 'CSS', json: 'JSON', clike: 'C/Java',
-      shell: 'Shell', sql: 'SQL', plain: '纯文本'
+      markup: 'HTML/XML', markdown: 'Markdown', css: 'CSS', json: 'JSON',
+      clike: 'C/Java', shell: 'Shell', sql: 'SQL', plain: '纯文本'
     };
 
     const EXT_LANG = {
@@ -1104,20 +1236,19 @@
       cxx: 'clike', hpp: 'clike', hh: 'clike', cs: 'clike', go: 'clike',
       rs: 'clike', swift: 'clike', m: 'clike', mm: 'clike', php: 'clike',
       sh: 'shell', bash: 'shell', zsh: 'shell', fish: 'shell', ksh: 'shell',
-      sql: 'sql'
+      sql: 'sql',
+      md: 'markdown', markdown: 'markdown', mdown: 'markdown', mkd: 'markdown'
     };
 
     /* =========================================================
-     * 语法高亮引擎（优化版）
+     * 语法高亮引擎
      * ======================================================= */
     const RE_IDENT = /[A-Za-z_$\u00c0-\uffff][\w$\u00c0-\uffff]*/y;
     const RE_NUM   = /0[xX][0-9a-fA-F_]+|0[bB][01_]+|0[oO][0-7_]+|\d[\d_]*(?:\.[\d_]+)?(?:[eE][+-]?\d+)?/y;
 
-    /* 高亮阈值：超过则退化为纯文本显示，避免卡顿 */
-    const HL_LIMIT      = 120000;   // 字符数上限
-    const HL_HTML_LIMIT = 900000;   // 生成 HTML 长度上限
+    const HL_LIMIT      = 120000;
+    const HL_HTML_LIMIT = 900000;
 
-    /* 预编译语言定义（Set 只构建一次，而不是每次高亮都构建） */
     function compileLangDef(def) {
       if (!def || def.__c) return def ? def.__c : null;
       const ci = !!def.ci;
@@ -1162,11 +1293,13 @@
     const SP_KEY_OPEN     = '<span class="tok-keyword">';
     const SP_LIT_OPEN     = '<span class="tok-literal">';
     const SP_FUNC_OPEN    = '<span class="tok-func">';
+    const SP_TAG_OPEN     = '<span class="tok-tag">';
     const SP_CLOSE        = '</span>';
 
-    /* 通用高亮：用数组收集片段，最后 join，减少字符串拼接开销 */
+    /* 通用高亮 */
     function highlightCode(code, langKey) {
       if (langKey === 'markup') return highlightMarkup(code);
+      if (langKey === 'markdown') return highlightMarkdown(code);
 
       const def = LANG_DEFS[langKey];
       if (!def) return escapeHtml(code);
@@ -1186,7 +1319,6 @@
       while (i < n) {
         let handled = false;
 
-        /* 块注释 */
         for (let k = 0; k < blockComments.length; k++) {
           const open = blockComments[k][0];
           if (code.startsWith(open, i)) {
@@ -1199,7 +1331,6 @@
         }
         if (handled) continue;
 
-        /* 行注释 */
         for (let k = 0; k < lineComments.length; k++) {
           const open = lineComments[k];
           if (code.startsWith(open, i)) {
@@ -1213,7 +1344,6 @@
 
         const ch = code[i];
 
-        /* 字符串 */
         if (stringSet.has(ch)) {
           let j = i + 1;
           while (j < n) {
@@ -1227,7 +1357,6 @@
           i = j; continue;
         }
 
-        /* 数字 */
         if (ch >= '0' && ch <= '9') {
           const prev = i > 0 ? code[i - 1] : '';
           if (!/[A-Za-z0-9_$]/.test(prev)) {
@@ -1241,7 +1370,6 @@
           }
         }
 
-        /* 标识符 / 关键字 */
         if (isIdentStart(ch)) {
           RE_IDENT.lastIndex = i;
           const m = RE_IDENT.exec(code);
@@ -1257,7 +1385,6 @@
           }
         }
 
-        /* 普通字符：仅对可能产生 HTML 冲突的字符做转义 */
         const cc = code.charCodeAt(i);
         if (cc === 38 || cc === 60 || cc === 62 || cc === 34) {
           out.push(escapeHtml(ch));
@@ -1301,6 +1428,250 @@
       return out.join('');
     }
 
+    /* ---------- Markdown 源码高亮 ---------- */
+    function highlightMarkdown(code) {
+      const lines = code.split('\n');
+      const out = [];
+      let inFence = false;
+      let fenceChar = '';
+
+      for (let li = 0; li < lines.length; li++) {
+        const line = lines[li];
+        if (li > 0) out.push('\n');
+
+        // 围栏代码块
+        const fm = line.match(/^(\s*)(`{3,}|~{3,})/);
+        if (fm) {
+          if (!inFence) { inFence = true; fenceChar = fm[2][0]; }
+          else if (fm[2][0] === fenceChar) { inFence = false; }
+          out.push(SP_COMMENT_OPEN, escapeHtml(line), SP_CLOSE);
+          continue;
+        }
+        if (inFence) {
+          out.push(SP_STRING_OPEN, escapeHtml(line), SP_CLOSE);
+          continue;
+        }
+
+        if (!line.trim()) continue;
+
+        // 标题
+        if (/^\s{0,3}#{1,6}\s/.test(line)) {
+          out.push(SP_KEY_OPEN, escapeHtml(line), SP_CLOSE);
+          continue;
+        }
+        // 引用
+        if (/^\s{0,3}>/.test(line)) {
+          out.push(SP_COMMENT_OPEN, escapeHtml(line), SP_CLOSE);
+          continue;
+        }
+        // 分隔线
+        if (/^\s{0,3}(\*{3,}|-{3,}|_{3,})\s*$/.test(line)) {
+          out.push(SP_COMMENT_OPEN, escapeHtml(line), SP_CLOSE);
+          continue;
+        }
+        // 列表
+        const lm = line.match(/^(\s*)([-*+]|\d+\.)(\s+)([\s\S]*)$/);
+        if (lm) {
+          out.push(escapeHtml(lm[1]));
+          out.push(SP_NUMBER_OPEN, escapeHtml(lm[2]), SP_CLOSE);
+          out.push(escapeHtml(lm[3]));
+          out.push(highlightMdInline(lm[4]));
+          continue;
+        }
+        // 普通行（行内标记）
+        out.push(highlightMdInline(line));
+      }
+      return out.join('');
+    }
+
+    function highlightMdInline(text) {
+      const out = [];
+      let last = 0;
+      let m;
+      const re = /(`[^`\n]+`)|(\*\*[^*\n]+?\*\*)|(\*[^*\n]+?\*)|(__[^_\n]+?__)|(_[^_\n]+?_)|(!?\[[^\]]*\]\([^)\n]+\))/g;
+      while ((m = re.exec(text))) {
+        if (m.index > last) out.push(escapeHtml(text.slice(last, m.index)));
+        const t = m[0];
+        if (m[1])                                         out.push(SP_STRING_OPEN, escapeHtml(t), SP_CLOSE);
+        else if (m[2] || m[3] || m[4] || m[5])            out.push(SP_LIT_OPEN, escapeHtml(t), SP_CLOSE);
+        else if (m[6])                                    out.push(SP_TAG_OPEN, escapeHtml(t), SP_CLOSE);
+        else                                              out.push(escapeHtml(t));
+        last = m.index + t.length;
+      }
+      if (last < text.length) out.push(escapeHtml(text.slice(last)));
+      return out.join('');
+    }
+
+    /* =========================================================
+     * Markdown 渲染（预览）
+     * ======================================================= */
+    function sanitizeUrl(url) {
+      const u = String(url).trim();
+      if (/^javascript:/i.test(u)) return '#';
+      if (/^data:/i.test(u) && !/^data:image\//i.test(u)) return '#';
+      if (/^vbscript:/i.test(u)) return '#';
+      return u;
+    }
+
+    function inlineFormat(text) {
+      // text 已做过 HTML 转义
+      const saved = [];
+
+      // 保护图片
+      text = text.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, function (_, alt, src) {
+        const i = saved.length;
+        saved.push('<img alt="' + alt + '" src="' + sanitizeUrl(src) + '" loading="lazy">');
+        return '\u0003L' + i + '\u0003';
+      });
+      // 保护链接
+      text = text.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, function (_, label, href) {
+        const i = saved.length;
+        saved.push('<a href="' + sanitizeUrl(href) + '" target="_blank" rel="noopener noreferrer">' + label + '</a>');
+        return '\u0003L' + i + '\u0003';
+      });
+
+      // 粗体 / 斜体
+      text = text.replace(/\*\*\*([^*\n]+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      text = text.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
+      text = text.replace(/__([^_\n]+?)__/g, '<strong>$1</strong>');
+      text = text.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
+      text = text.replace(/(^|[^\w])_([^_\n]+?)_(?=$|[^\w])/g, '$1<em>$2</em>');
+
+      // 删除线
+      text = text.replace(/~~([^~\n]+?)~~/g, '<del>$1</del>');
+
+      // 恢复链接/图片
+      text = text.replace(/\u0003L(\d+)\u0003/g, function (_, n) { return saved[+n]; });
+
+      return text;
+    }
+
+    function renderMarkdown(src) {
+      let text = String(src).replace(/\r\n?/g, '\n');
+
+      // 抽出围栏代码块
+      const blocks = [];
+      text = text.replace(/```([^\n`]*)\n?([\s\S]*?)```/g, function (_, info, body) {
+        const i = blocks.length;
+        blocks.push({ info: (info || '').trim(), body: body });
+        return '\n\u0001B' + i + '\u0001\n';
+      });
+
+      // 抽出围栏 ~ 变体
+      text = text.replace(/~~~([^\n~]*)\n?([\s\S]*?)~~~/g, function (_, info, body) {
+        const i = blocks.length;
+        blocks.push({ info: (info || '').trim(), body: body });
+        return '\n\u0001B' + i + '\u0001\n';
+      });
+
+      // 抽出所有行内代码
+      const inlines = [];
+      text = text.replace(/`([^`\n]+)`/g, function (_, body) {
+        const i = inlines.length;
+        inlines.push(body);
+        return '\u0002I' + i + '\u0002';
+      });
+
+      const lines = text.split('\n');
+      const out = [];
+      let listType = '';
+      let inQuote = false;
+      let para = [];
+
+      function flushPara() {
+        if (para.length) {
+          out.push('<p>' + inlineFormat(para.join('\n')) + '</p>');
+          para = [];
+        }
+      }
+      function closeList() {
+        if (listType) { out.push('</' + listType + '>'); listType = ''; }
+      }
+      function closeQuote() {
+        if (inQuote) { out.push('</blockquote>'); inQuote = false; }
+      }
+
+      for (let i = 0; i < lines.length; i++) {
+        const raw = lines[i];
+
+        // 块占位符
+        const bm = raw.match(/^\u0001B(\d+)\u0001$/);
+        if (bm) {
+          flushPara(); closeList(); closeQuote();
+          const b = blocks[+bm[1]];
+          const body = escapeHtml(b.body.replace(/\n+$/, ''));
+          const langCls = b.info
+            ? ' class="language-' + escapeHtml(b.info.split(/\s+/)[0]) + '"'
+            : '';
+          out.push('<pre><code' + langCls + '>' + body + '</code></pre>');
+          continue;
+        }
+
+        // 空行
+        if (!raw.trim()) {
+          flushPara(); closeList(); closeQuote();
+          continue;
+        }
+
+        // 标题
+        const hm = raw.match(/^\s{0,3}(#{1,6})\s+([\s\S]*?)\s*#*\s*$/);
+        if (hm) {
+          flushPara(); closeList(); closeQuote();
+          const lv = hm[1].length;
+          out.push('<h' + lv + '>' + inlineFormat(escapeHtml(hm[2])) + '</h' + lv + '>');
+          continue;
+        }
+
+        // 分隔线
+        if (/^\s{0,3}(\*{3,}|-{3,}|_{3,})\s*$/.test(raw)) {
+          flushPara(); closeList(); closeQuote();
+          out.push('<hr>');
+          continue;
+        }
+
+        // 引用块
+        const qm = raw.match(/^\s{0,3}>\s?([\s\S]*)$/);
+        if (qm) {
+          flushPara(); closeList();
+          if (!inQuote) { out.push('<blockquote>'); inQuote = true; }
+          out.push('<p>' + inlineFormat(escapeHtml(qm[1])) + '</p>');
+          continue;
+        }
+
+        // 无序列表
+        const ulm = raw.match(/^\s{0,3}[-*+]\s+([\s\S]*)$/);
+        if (ulm) {
+          flushPara(); closeQuote();
+          if (listType !== 'ul') { closeList(); out.push('<ul>'); listType = 'ul'; }
+          out.push('<li>' + inlineFormat(escapeHtml(ulm[1])) + '</li>');
+          continue;
+        }
+
+        // 有序列表
+        const olm = raw.match(/^\s{0,3}\d+\.\s+([\s\S]*)$/);
+        if (olm) {
+          flushPara(); closeQuote();
+          if (listType !== 'ol') { closeList(); out.push('<ol>'); listType = 'ol'; }
+          out.push('<li>' + inlineFormat(escapeHtml(olm[1])) + '</li>');
+          continue;
+        }
+
+        // 普通段落
+        closeList(); closeQuote();
+        para.push(escapeHtml(raw));
+      }
+      flushPara(); closeList(); closeQuote();
+
+      let html = out.join('\n');
+
+      // 恢复行内代码
+      html = html.replace(/\u0002I(\d+)\u0002/g, function (_, n) {
+        return '<code>' + escapeHtml(inlines[+n]) + '</code>';
+      });
+
+      return html;
+    }
+
     /* =========================================================
      * 语言自动识别
      * ======================================================= */
@@ -1308,11 +1679,13 @@
       const s = text.slice(0, 4000);
       if (!s.trim()) return null;
 
+      if (/^#{1,6}\s+/m.test(s) || /^\s{0,3}[>*+-]\s+/m.test(s) || /```/.test(s)) return 'markdown';
       if (/<!DOCTYPE\s+html|<html[\s>]|<\?xml[\s>]/i.test(s)) return 'markup';
       if (/^\s*[{[][\s\S]*[}\]]\s*$/.test(s.trim()) && /"[^"\n]*"\s*:/.test(s)) return 'json';
       if (/^\s*#!\/.*\b(bash|sh|zsh|fish)\b/m.test(s)) return 'shell';
       if (/\bdef\s+\w+\s*\(|\bclass\s+\w+\s*[(:]|^\s*(import\s+\w+\s*$|from\s+\w+\s+import)\b/m.test(s)) return 'python';
       if (/^\s*(package\s+\w+;|public\s+(class|static)|#include\s*<|\bint\s+main\s*\()/m.test(s)) return 'clike';
+      if (/\bfun\s+\w+\s*\(|\bval\s+\w+\s*[:=]|\bdata\s+class\b|\bobject\s+\w+/m.test(s)) return 'clike';
       if (/\bfunction\b|\b(const|let|var)\s+\w+\s*=|=>|console\.log|^\s*import\s+.*\bfrom\b/m.test(s)) return 'javascript';
       if (/^\s*(SELECT|INSERT|UPDATE|DELETE|CREATE\s+TABLE)\b/im.test(s)) return 'sql';
       if (/[.#][\w-]+\s*\{[^}]*:[^}]*\}/.test(s)) return 'css';
@@ -1325,7 +1698,7 @@
       if (m) {
         const ext = m[1].toLowerCase();
         if (EXT_LANG[ext] !== undefined) return EXT_LANG[ext];
-        if (ext === 'txt' || ext === 'log' || ext === 'md' || ext === 'csv') return 'plain';
+        if (ext === 'txt' || ext === 'log' || ext === 'csv') return 'plain';
       }
       return guessByContent(text);
     }
@@ -1344,7 +1717,8 @@
       isNew:     false,
       dirty:     false,
       lang:      'auto',
-      resolvedLang: null
+      resolvedLang: null,
+      previewMode:  false
     };
 
     /* =========================================================
@@ -1467,7 +1841,7 @@
     /* =========================================================
      * 高亮渲染（带节流 + 大文本保护）
      * ======================================================= */
-    const HL_INTERVAL = 80;    // ms
+    const HL_INTERVAL = 80;
     let hlTimer = null;
     let hlLastRun = 0;
 
@@ -1495,10 +1869,13 @@
 
       const needHighlight = text.length <= HL_LIMIT &&
                             lang && lang !== 'plain' &&
-                            (lang === 'markup' || LANG_DEFS[lang]);
+                            (lang === 'markup' || lang === 'markdown' || LANG_DEFS[lang]);
 
       if (needHighlight) {
-        const html = highlightCode(text, lang);
+        let html;
+        if (lang === 'markup')       html = highlightMarkup(text);
+        else if (lang === 'markdown') html = highlightMarkdown(text);
+        else                          html = highlightCode(text, lang);
         if (html.length <= HL_HTML_LIMIT) {
           hlCode.innerHTML = html + '\n';
         } else {
@@ -1511,6 +1888,8 @@
       syncGutter();
       syncScrollNow();
       updateStatus();
+      updatePreviewButton();
+      if (state.previewMode && !previewWrap.hidden) renderPreview();
     }
 
     function scheduleHighlight() {
@@ -1523,7 +1902,6 @@
       }, wait);
     }
 
-    /* 立即执行一次（用于打开/新建/切换语言等场景） */
     function flushHighlight() {
       if (hlTimer) { clearTimeout(hlTimer); hlTimer = null; }
       hlLastRun = performance.now();
@@ -1546,7 +1924,7 @@
     }
     editor.addEventListener('scroll', syncScroll, { passive: true });
 
-    /* ---------- 滚动条宽度对齐（避免换行错位） ---------- */
+    /* ---------- 滚动条宽度对齐 ---------- */
     let gutterW = -1;
     function syncGutter() {
       const w = Math.max(0,
@@ -1560,6 +1938,56 @@
       try { new ResizeObserver(syncGutter).observe(editor); } catch (e) {}
     }
     window.addEventListener('resize', syncGutter, { passive: true });
+
+    /* =========================================================
+     * Markdown 预览
+     * ======================================================= */
+    function isMarkdownActive() {
+      return state.loaded && resolveLang() === 'markdown';
+    }
+
+    function renderPreview() {
+      try {
+        previewBody.innerHTML = renderMarkdown(editor.value);
+      } catch (err) {
+        previewBody.textContent = '渲染出错：' + (err && err.message ? err.message : err);
+      }
+    }
+
+    function updatePreviewButton() {
+      const show = isMarkdownActive();
+      btnPreview.hidden = !show;
+      if (!show && state.previewMode) {
+        state.previewMode = false;
+        previewWrap.hidden = true;
+        editorWrap.hidden = false;
+        btnPreviewLabel.textContent = '预览';
+        btnPreview.title = '预览 Markdown（Ctrl+Shift+M）';
+        btnPreview.classList.remove('active');
+      }
+    }
+
+    function togglePreview() {
+      if (!isMarkdownActive()) return;
+      state.previewMode = !state.previewMode;
+      if (state.previewMode) {
+        editorWrap.hidden = true;
+        previewWrap.hidden = false;
+        btnPreviewLabel.textContent = '编辑';
+        btnPreview.title = '返回编辑（Ctrl+Shift+M）';
+        btnPreview.classList.add('active');
+        renderPreview();
+      } else {
+        editorWrap.hidden = false;
+        previewWrap.hidden = true;
+        btnPreviewLabel.textContent = '预览';
+        btnPreview.title = '预览 Markdown（Ctrl+Shift+M）';
+        btnPreview.classList.remove('active');
+        editor.focus();
+      }
+    }
+
+    btnPreview.addEventListener('click', togglePreview);
 
     /* =========================================================
      * 打开 / 加载 / 新建
@@ -1612,8 +2040,14 @@
         state.loaded    = true;
         state.isNew     = false;
         state.lang      = 'auto';
+        state.previewMode = false;
         langCacheKey    = '\u0000';
         langCacheVal    = null;
+
+        previewWrap.hidden = true;
+        editorWrap.hidden = false;
+        btnPreviewLabel.textContent = '预览';
+        btnPreview.classList.remove('active');
 
         editor.value = normalized;
         editor.scrollTop = 0;
@@ -1649,8 +2083,14 @@
       state.loaded    = true;
       state.isNew     = true;
       state.lang      = 'auto';
+      state.previewMode = false;
       langCacheKey    = '\u0000';
       langCacheVal    = null;
+
+      previewWrap.hidden = true;
+      editorWrap.hidden = false;
+      btnPreviewLabel.textContent = '预览';
+      btnPreview.classList.remove('active');
 
       editor.value = '';
       editor.scrollTop = 0;
@@ -2006,6 +2446,10 @@
         e.preventDefault();
         if (state.dirty && !confirm('当前有未保存的修改，确定新建空白文件？')) return;
         newFile();
+      } else if (k === 'm' && e.shiftKey) {
+        // Ctrl+Shift+M 切换 Markdown 预览
+        e.preventDefault();
+        togglePreview();
       }
     });
 
