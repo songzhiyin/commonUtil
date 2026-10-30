@@ -953,11 +953,29 @@
     }
     return result;
   }
+
+  /* 导出 Excel 文件名：多语言集合_月日小时分钟秒（例：多语言集合_1122122233.xlsx） */
   function buildExportFileName() {
-    let base = '修改后';
-    if (originalFileName) base = originalFileName.replace(/\.[^./\\]+$/, '');
-    return `${base}_${timestampSuffix()}.xlsx`;
+    return `多语言集合_${timestampSuffix()}.xlsx`;
   }
+
+  /* 行编辑弹框列标题显示：去掉 .lproj 后缀，并为中文简体/繁体增加备注 */
+  function getZhVariantLabel(key) {
+    if (!Object.prototype.hasOwnProperty.call(LANG_TO_ANDROID, key)) return '';
+    const androidCode = LANG_TO_ANDROID[key];
+    if (!androidCode || androidCode.indexOf('zh-') !== 0) return '';
+    if (androidCode === 'zh-rCN' || androidCode === 'zh-rSG') return '中文简体';
+    if (androidCode === 'zh-rTW' || androidCode === 'zh-rHK' || androidCode === 'zh-rMO') return '中文繁体';
+    return '';
+  }
+  function formatHeaderForModal(header) {
+    const raw = String(header ?? '').trim();
+    const stripped = raw.replace(/\.lproj$/i, '');
+    const key = stripped.toLowerCase().replace(/_/g, '-');
+    const variant = getZhVariantLabel(key);
+    return variant ? `${stripped}(${variant})` : stripped;
+  }
+
   function isExcelFile(file) {
     const name = (file.name || '').toLowerCase();
     return name.endsWith('.xlsx') || name.endsWith('.xls');
@@ -2413,9 +2431,11 @@
     let html = '';
     excelHeaders.forEach((header, colIdx) => {
       const val = rowData[colIdx] ?? '';
+      // 列标题：去掉 .lproj 后缀，中文简体/繁体增加备注
+      const displayLabel = formatHeaderForModal(header) || ('列' + (colIdx + 1));
       html += `
         <div class="modal-field">
-          <label>${escapeHtml(header || '列' + (colIdx + 1))}</label>
+          <label>${escapeHtml(displayLabel)}</label>
           <input type="text" data-col="${colIdx}" value="${escapeHtml(val)}">
         </div>
       `;
